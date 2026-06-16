@@ -916,8 +916,6 @@ fn background_writer(state: Arc<SharedState>, mut mmap: MmapMut, _sync_on_close:
 mod tests {
     use super::*;
     use std::fs;
-    use std::thread::sleep;
-    use std::time::Duration;
 
     // ==================== Configuration Tests ====================
 
@@ -1053,8 +1051,8 @@ mod tests {
             .write(RecordType::RawFrame, 1, b"test payload")
             .expect("Failed to write");
 
-        // Wait for background thread
-        sleep(Duration::from_millis(50));
+        // Flush deterministically — blocks until the background thread has written.
+        writer.flush().expect("flush failed");
 
         assert_eq!(writer.records_written(), 1);
 
@@ -1284,13 +1282,13 @@ mod tests {
         writer
             .write(RecordType::RawFrame, 1, b"test")
             .expect("Failed to write");
-        sleep(Duration::from_millis(20));
+        writer.flush().expect("flush failed");
         assert_eq!(writer.records_written(), 1);
 
         writer
             .write(RecordType::RawFrame, 1, b"test")
             .expect("Failed to write");
-        sleep(Duration::from_millis(20));
+        writer.flush().expect("flush failed");
         assert_eq!(writer.records_written(), 2);
 
         writer.close().expect("Failed to close");

@@ -63,7 +63,8 @@ replay — two independently-tested components in this repo integrating through 
 
 ### `correlation-gate/` — a fail-closed risk gate
 A thread-safe risk semaphore that stops concurrent strategies from stacking correlated exposure. It
-fails *closed*: if it cannot prove a trade is safe, it rejects it. 455 tests, ~99% coverage.
+fails *closed*: if it cannot prove a trade is safe, it rejects it. Extensively tested (unit,
+integration, concurrency, chaos) at ~99% coverage; the wall-clock perf benchmarks are opt-in (`--runperf`).
 **Skill: concurrency, defensive systems design, risk controls.**
 
 ---

@@ -513,15 +513,15 @@ fn bench_deribit_book_intervals(c: &mut Criterion) {
     let mut group = c.benchmark_group("deribit_book_interval");
 
     group.bench_function("Raw", |b| {
-        b.iter(|| black_box(DeribitAdapter::new(BookInterval::Raw)));
+        b.iter(|| black_box(DeribitAdapter::with_interval(BookInterval::Raw)));
     });
 
     group.bench_function("Ms100", |b| {
-        b.iter(|| black_box(DeribitAdapter::new(BookInterval::Ms100)));
+        b.iter(|| black_box(DeribitAdapter::with_interval(BookInterval::Ms100)));
     });
 
     group.bench_function("None", |b| {
-        b.iter(|| black_box(DeribitAdapter::new(BookInterval::None)));
+        b.iter(|| black_box(DeribitAdapter::with_interval(BookInterval::None)));
     });
 
     group.finish();
@@ -532,11 +532,11 @@ fn bench_binance_update_intervals(c: &mut Criterion) {
     let mut group = c.benchmark_group("binance_update_interval");
 
     group.bench_function("Ms1000", |b| {
-        b.iter(|| black_box(BinanceAdapter::new(UpdateInterval::Ms1000)));
+        b.iter(|| black_box(BinanceAdapter::with_interval(UpdateInterval::Ms1000)));
     });
 
     group.bench_function("Ms100", |b| {
-        b.iter(|| black_box(BinanceAdapter::new(UpdateInterval::Ms100)));
+        b.iter(|| black_box(BinanceAdapter::with_interval(UpdateInterval::Ms100)));
     });
 
     group.finish();
