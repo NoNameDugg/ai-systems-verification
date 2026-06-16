@@ -1,0 +1,16 @@
+# ASTRA Correlation Gate - dependencies
+#
+# Runtime: the `src` package uses only the Python standard library
+# (decimal, threading, datetime, dataclasses, enum, concurrent.futures, etc.).
+# There are NO required third-party runtime dependencies.
+#
+# The dependencies below are for running the test suite. Install with:
+#     pip install -r requirements.txt
+
+# --- Test dependencies ---
+pytest>=7.0
+
+# --- Optional test plugins ---
+# Uncomment if you want performance benchmarks or parallel test execution.
+# pytest-benchmark>=4.0   # tests/performance, tests/benchmarks
+# pytest-xdist>=3.0       # run tests across multiple CPUs (pytest -n auto)

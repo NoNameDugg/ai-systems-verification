@@ -1,0 +1,150 @@
+# ASTRA Correlation Gate Configuration
+# Copy this file to gate_config.yaml and customize for your environment
+
+# ============================================================================
+# GATE SETTINGS
+# ============================================================================
+
+gate:
+  # Enable/disable the gate (true/false)
+  enabled: true
+
+  # Operating mode:
+  # - production: Full enforcement, audit logging enabled
+  # - simulation: Full enforcement, optimized for backtesting
+  # - dry_run: Log decisions but don't enforce (for testing)
+  mode: "production"
+
+# ============================================================================
+# THRESHOLD CONFIGURATION
+# ============================================================================
+
+thresholds:
+  # Default thresholds for all currencies
+  default:
+    # Net exposure count that triggers SOFT_WARNING
+    soft_warning: 2
+
+    # Net exposure count that triggers HARD_BLOCK
+    hard_block: 3
+
+  # Currency-specific threshold overrides
+  overrides:
+    # USD: Higher thresholds (most common quote currency)
+    USD:
+      soft_warning: 3
+      hard_block: 4
+
+    # XAU: Lower thresholds (volatile, high notional)
+    XAU:
+      soft_warning: 1
+      hard_block: 2
+
+# ============================================================================
+# XAU/USD HANDLING
+# ============================================================================
+
+xau:
+  # Mode for handling XAU/USD correlation:
+  # - STANDARD: Treat XAU like any other base currency
+  # - HEDGE_AWARE: Apply correlation weight to XAU impact
+  # - SEPARATE_BASKET: Track XAU separately from fiat
+  mode: "STANDARD"
+
+  # Correlation weight for HEDGE_AWARE mode (0.0 to 1.0)
+  correlation_weight: 0.5
+
+# ============================================================================
+# POSITION PROVIDER
+# ============================================================================
+
+position_provider:
+  # Provider type: "oanda" or "simulator"
+  type: "oanda"
+
+  # Position cache TTL in seconds (0 = no caching)
+  cache_ttl_seconds: 5
+
+  # API request timeout in seconds
+  timeout_seconds: 10
+
+  # Retry attempts for failed requests
+  retry_attempts: 3
+
+  # OANDA-specific settings (only used if type: "oanda")
+  oanda:
+    # Account ID (or use OANDA_ACCOUNT_ID env var)
+    account_id: ""
+
+    # API token (or use OANDA_API_TOKEN env var)
+    api_token: ""
+
+    # API URL (or use OANDA_API_URL env var)
+    # Practice: https://api-fxpractice.oanda.com
+    # Production: https://api-fxtrade.oanda.com
+    api_url: "https://api-fxpractice.oanda.com"
+
+# ============================================================================
+# SECURITY SETTINGS
+# ============================================================================
+
+security:
+  # Pending signal timeout in seconds
+  # Signals not confirmed within this time are automatically cancelled
+  pending_timeout_seconds: 5
+
+  # Maximum pending signals allowed (prevents memory exhaustion)
+  max_pending_signals: 100
+
+  # Lock timeout in seconds (for atomic operations)
+  lock_timeout_seconds: 1.0
+
+# ============================================================================
+# AUDIT LOGGING
+# ============================================================================
+
+audit:
+  # Enable/disable audit logging
+  enabled: true
+
+  # Audit log directory
+  log_dir: "/var/log/astra/gate_audit"
+
+  # Maximum log file size in MB before rotation
+  max_size_mb: 100
+
+  # Maximum number of log files to retain
+  max_files: 30
+
+  # Log format: "jsonl" (JSON Lines) or "json" (pretty JSON)
+  format: "jsonl"
+
+# ============================================================================
+# PERFORMANCE TUNING
+# ============================================================================
+
+performance:
+  # Maximum acceptable evaluation time in milliseconds
+  # Evaluations exceeding this are logged as warnings
+  max_evaluation_time_ms: 10
+
+  # Enable performance metrics collection
+  enable_metrics: true
+
+  # Metrics export interval in seconds (0 = disabled)
+  metrics_export_interval: 60
+
+# ============================================================================
+# LOGGING
+# ============================================================================
+
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "INFO"
+
+  # Log format
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+  # Log to file (in addition to console)
+  file: "/var/log/astra/correlation_gate.log"
+

@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Rust
+target/
+**/*.rs.bk
+
+# Data / secrets (belt-and-braces — none should ever be here)
+*.parquet
+*.csv
+*.db
+*.sqlite
+*.tar.gz
+.env
+.env.*
+*.api.txt
+
+# Editor / OS / agent
+.claude/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local artifacts
+_artifacts/
+quality_review/
+*.coverage
+.benchmarks/
