@@ -1,0 +1,125 @@
+name: ci
+
+# The acceptance gate. This runs on a clean Linux runner where the licensed
+# datasets and the sibling repos this code was extracted from DO NOT EXIST.
+# That is the point: if a component secretly depended on something outside its
+# own directory, it fails here. Every test count in this repo's READMEs is meant
+# to be reproduced by this workflow's output — nothing is hand-transcribed.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Leak gate — no secrets, no licensed-data identifiers, no host paths.
+  #    Two independent scanners; either one failing fails the build.
+  # ---------------------------------------------------------------------------
+  leak-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks (credential scan)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
+          GITLEAKS_ENABLE_SUMMARY: "false"
+      - name: licensed-string / host-path scan
+        run: bash scripts/scan_leaks.sh .
+      - name: assert no licensed data-loaders were shipped
+        run: |
+          if find . -type f \( -name 'load_sharadar.py' -o -name 'macro_replay.py' \
+               -o -name 'oos_split.py' -o -name '_capture_row_builders.py' \) | grep -q .; then
+            echo "::error::a licensed data-loader was shipped — extraction allow-list breach"
+            exit 1
+          fi
+          echo "clean: no licensed loaders present"
+
+  # ---------------------------------------------------------------------------
+  # 2. The gauntlet (Python) — must pass on SYNTHETIC fixtures alone, with no
+  #    licensed dataset and no sibling repo anywhere on the runner.
+  # ---------------------------------------------------------------------------
+  gauntlet:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.12", "3.14" ]
+        package: [ forkb, rank_ic_gate, ml_xsect ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: install
+        working-directory: gauntlet/${{ matrix.package }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: test (self-contained, synthetic data only)
+        working-directory: gauntlet/${{ matrix.package }}
+        run: python -m pytest -q
+
+  # ---------------------------------------------------------------------------
+  # 3. Correlation gate (Python) — fail-closed risk semaphore.
+  # ---------------------------------------------------------------------------
+  correlation-gate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.12", "3.14" ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: install
+        working-directory: correlation-gate
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: test
+        working-directory: correlation-gate
+        run: python -m pytest -q
+
+  # ---------------------------------------------------------------------------
+  # 4. Rust components — flight-recorder + market-data adapter.
+  #    Linux runner resolves the local Windows WDAC doctest-exec restriction,
+  #    so the FULL test set (incl. doctests) runs here.
+  # ---------------------------------------------------------------------------
+  rust:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: blackbox
+            test_cmd: "cargo test --locked"
+          - component: flash
+            test_cmd: "cargo test --locked --tests --lib"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ matrix.component }}
+      - name: build
+        working-directory: ${{ matrix.component }}
+        run: cargo build --locked --all-targets
+      - name: test
+        working-directory: ${{ matrix.component }}
+        run: ${{ matrix.test_cmd }}
+      # Optional feature: the market-data adapter taps into the flight-recorder
+      # (two independent components in this repo integrating via a clean seam).
+      - name: integration (flash <-> blackbox flight-recorder)
+        if: matrix.component == 'flash'
+        working-directory: flash
+        run: cargo test --locked --features blackbox --lib --tests

@@ -1,0 +1,17 @@
+{
+  "type": "PRICE",
+  "time": "2023-12-29T00:00:00.000000000Z",
+  "instrument": "EUR_USD",
+  "status": "tradeable",
+  "tradeable": true,
+  "bids": [
+    {"price": "1.10500", "liquidity": 10000000},
+    {"price": "1.10499", "liquidity": 5000000}
+  ],
+  "asks": [
+    {"price": "1.10510", "liquidity": 10000000},
+    {"price": "1.10511", "liquidity": 5000000}
+  ],
+  "closeoutBid": "1.10500",
+  "closeoutAsk": "1.10510"
+}

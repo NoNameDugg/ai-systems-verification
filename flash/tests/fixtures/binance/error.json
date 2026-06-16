@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": -1003,
+    "msg": "Too many requests; please use the websocket for live updates."
+  },
+  "id": 1
+}

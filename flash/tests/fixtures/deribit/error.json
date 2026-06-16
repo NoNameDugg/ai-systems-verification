@@ -1,0 +1,11 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": 10020,
+    "message": "rate_limit_exceeded",
+    "data": {
+      "reason": "too many requests"
+    }
+  }
+}

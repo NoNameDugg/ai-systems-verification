@@ -1,0 +1,96 @@
+# =============================================================================
+# Flash Configuration - Default Profile (OANDA feed)
+# =============================================================================
+# Credentials are supplied via environment variables (api_key/account_id left
+# empty here); never commit real credentials to this file.
+# =============================================================================
+
+# WebSocket settings
+websocket:
+  connect_timeout_ms: 5000
+  ping_interval_ms: 30000
+  pong_timeout_ms: 10000
+  max_reconnect_attempts: 10
+  reconnect_delay_ms: 1000
+  max_reconnect_delay_ms: 30000
+  reconnect_jitter: 0.1
+
+# Order book settings
+orderbook:
+  max_depth: 50
+  max_levels: 100
+  track_orders: false
+  auto_prune: true
+  gap_handling: snapshot
+
+# Redis configuration (localhost for non-Docker execution)
+redis:
+  url: "redis://localhost:6379"
+  database: 0
+  pool_size: 10
+  connect_timeout_ms: 5000
+  command_timeout_ms: 1000
+  batch_size: 100
+  batch_timeout_ms: 10
+  health_check_interval_ms: 5000
+
+# Publisher settings
+publisher:
+  format: bincode
+  debug_json_fallback: false
+  topic_prefix: "astra:signals:flash"
+  backpressure:
+    capacity: 10000
+    warn_threshold: 0.75
+    critical_threshold: 0.95
+    action: drop_oldest
+
+# =============================================================================
+# EXCHANGE CONFIGURATIONS
+# =============================================================================
+
+exchanges:
+  # Deribit (disabled)
+  deribit:
+    enabled: false
+    ws_url: "wss://www.deribit.com/ws/api/v2"
+    rate_limit_per_second: 20
+    instruments: []
+
+  # Binance (disabled)
+  binance:
+    enabled: false
+    ws_url: "wss://stream.binance.com:9443/ws"
+    rate_limit_per_second: 20
+    instruments: []
+
+  # OANDA (enabled) - credentials supplied via environment variables
+  oanda:
+    enabled: true
+    ws_url: "wss://stream-fxtrade.oanda.com/v3/accounts"  # live-trade stream URL
+    api_key: ""
+    account_id: ""
+    rate_limit_per_second: 100
+    instruments:
+      - EUR_USD
+      - GBP_USD
+      - USD_JPY
+      - USD_CHF
+      - AUD_USD
+      - NZD_USD
+      - USD_CAD
+
+# Logging
+logging:
+  level: info
+  format: json
+  file_path: null
+  max_file_size_mb: 100
+  max_files: 5
+
+# Metrics (Prometheus)
+metrics:
+  enabled: true
+  port: 9090
+  bind_address: "0.0.0.0"
+  path: "/metrics"

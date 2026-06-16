@@ -1,0 +1,242 @@
+# =============================================================================
+# Flash - Python Package Configuration
+# =============================================================================
+# High-Frequency Market Data Adapter (Rust + PyO3)
+# Built with PyO3 and Maturin
+# =============================================================================
+
+[build-system]
+requires = ["maturin>=1.4,<2.0"]
+build-backend = "maturin"
+
+# =============================================================================
+# PROJECT METADATA
+# =============================================================================
+
+[project]
+name = "astra_flash"
+version = "0.1.0"
+description = "High-Frequency Market Data Adapter (Rust + PyO3)"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.8"
+authors = [
+    { name = "Jared Temple" }
+]
+maintainers = [
+    { name = "Jared Temple" }
+]
+keywords = [
+    "trading",
+    "market-data",
+    "hft",
+    "high-frequency",
+    "orderbook",
+    "websocket",
+    "rust",
+    "pyo3",
+    "redis",
+    "streaming",
+    "finance",
+    "cryptocurrency",
+    "forex"
+]
+classifiers = [
+    # Development Status
+    "Development Status :: 4 - Beta",
+
+    # Intended Audience
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Science/Research",
+
+    # License
+    "License :: OSI Approved :: MIT License",
+
+    # Operating System
+    "Operating System :: OS Independent",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+
+    # Programming Language
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Rust",
+
+    # Topic
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+
+    # Typing
+    "Typing :: Typed"
+]
+
+# =============================================================================
+# OPTIONAL DEPENDENCIES
+# =============================================================================
+
+[project.optional-dependencies]
+# Development dependencies
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "pytest-benchmark>=4.0",
+    "mypy>=1.0",
+    "black>=23.0",
+    "ruff>=0.1.0",
+    "isort>=5.0"
+]
+
+# Testing dependencies
+test = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "pytest-cov>=4.0",
+    "hypothesis>=6.0"
+]
+
+# Documentation dependencies
+docs = [
+    "sphinx>=6.0",
+    "sphinx-rtd-theme>=1.0",
+    "myst-parser>=1.0"
+]
+
+# All optional dependencies
+all = [
+    "astra_flash[dev]",
+    "astra_flash[test]",
+    "astra_flash[docs]"
+]
+
+# =============================================================================
+# MATURIN CONFIGURATION
+# =============================================================================
+
+[tool.maturin]
+# Module name in Python
+module-name = "astra_flash"
+
+# Python source directory (for .pyi files and Python code)
+python-source = "python"
+
+# Features to enable during build
+features = ["python"]
+
+# Binding type (pyo3 is default, but explicit is good)
+bindings = "pyo3"
+
+# Strip debug symbols in release builds
+strip = true
+
+# Compatibility with older manylinux
+# manylinux = "auto"
+
+# Include additional files in source distribution
+include = [
+    { path = "README.md", format = "sdist" },
+    { path = "LICENSE", format = "sdist" },
+    { path = "python/**/*.pyi", format = "sdist" },
+    { path = "python/**/*.py", format = "sdist" },
+    { path = "python/py.typed", format = "sdist" }
+]
+
+# Exclude files from wheel
+exclude = [
+    "tests/**",
+    "benches/**",
+    "planning/**",
+    "docs/**",
+    ".github/**",
+    ".git/**",
+    "target/**"
+]
+
+# =============================================================================
+# TOOL CONFIGURATIONS
+# =============================================================================
+
+[tool.black]
+line-length = 100
+target-version = ["py38", "py39", "py310", "py311", "py312"]
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | target
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "C90", # mccabe
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+]
+ignore = [
+    "E501", # line too long (handled by black)
+]
+
+[tool.ruff.isort]
+known-first-party = ["astra_flash"]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+follow_imports = "silent"
+show_error_codes = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["python/tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["astra_flash"]
+branch = true
+omit = ["*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]

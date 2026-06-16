@@ -1,0 +1,141 @@
+# =============================================================================
+# Flash Configuration - Production Profile
+# =============================================================================
+#
+# This profile disables shadow mode so the engine writes directly to the
+# primary Redis namespaces:
+#   - Orderbook: market:orderbook:{symbol}        (e.g., market:orderbook:EUR_USD)
+#   - Signal:    astra:signals:flash:{exchange}:{symbol}
+#
+# Recommended only after shadow-mode validation (see flash.shadow.yaml) has
+# confirmed price-match parity and stable continuous operation.
+#
+# Rollback: set ASTRA_FLASH_SHADOW_MODE_ENABLED=true to revert to shadow mode
+# (writes to the :rust: namespace) without a redeploy.
+# =============================================================================
+
+# PRODUCTION: Shadow Mode Disabled
+# Rust writes directly to production namespaces
+shadow_mode:
+  enabled: false
+  namespace: "rust"  # Preserved for emergency rollback
+
+# WebSocket settings (production-optimized)
+websocket:
+  connect_timeout_ms: 5000
+  read_timeout_ms: 5000    # Force reconnect if no data for 5s
+  ping_interval_ms: 30000
+  pong_timeout_ms: 10000
+  max_reconnect_attempts: 10
+  reconnect_delay_ms: 1000
+  max_reconnect_delay_ms: 30000
+  reconnect_jitter: 0.1
+
+# Order book settings
+orderbook:
+  max_depth: 50
+  max_levels: 100
+  track_orders: false
+  auto_prune: true
+  gap_handling: snapshot
+
+# Redis configuration (container network)
+redis:
+  url: "redis://redis:6379"
+  database: 0
+  pool_size: 10
+  connect_timeout_ms: 5000
+  command_timeout_ms: 1000
+  batch_size: 100
+  batch_timeout_ms: 10
+  health_check_interval_ms: 5000
+
+# Publisher settings - Bincode format for production performance
+publisher:
+  format: bincode          # Binary format for optimal performance
+  debug_json_fallback: false
+  topic_prefix: "astra:signals:flash"
+  backpressure:
+    capacity: 10000
+    warn_threshold: 0.75
+    critical_threshold: 0.95
+    action: drop_oldest    # Never block WebSocket, drop stale data
+
+# =============================================================================
+# EXCHANGE CONFIGURATIONS (Production)
+# =============================================================================
+
+exchanges:
+  # Deribit (disabled in production)
+  deribit:
+    enabled: false
+    ws_url: "wss://www.deribit.com/ws/api/v2"
+    rate_limit_per_second: 20
+    instruments: []
+
+  # Binance (disabled in production)
+  binance:
+    enabled: false
+    ws_url: "wss://stream.binance.com:9443/ws"
+    rate_limit_per_second: 20
+    instruments: []
+
+  # OANDA (ENABLED - LIVE Production Account)
+  # CRITICAL: Using LIVE credentials - real money trading!
+  oanda:
+    enabled: true
+    ws_url: "https://stream-fxtrade.oanda.com/v3/accounts"  # LIVE URL
+    api_key: ""
+    account_id: ""
+    rate_limit_per_second: 100
+    instruments:
+      - EUR_USD
+      - GBP_USD
+      - USD_JPY
+      - USD_CHF
+      - AUD_USD
+      - NZD_USD
+      - USD_CAD
+
+# Logging - Production level
+logging:
+  level: info              # Production: info level (not debug)
+  format: json             # Structured logging for monitoring
+  file_path: null          # Use stdout for container logging
+  max_file_size_mb: 100
+  max_files: 5
+
+# Metrics (Prometheus) - Production port
+metrics:
+  enabled: true
+  port: 9090               # Production port (same as Python was using)
+  bind_address: "0.0.0.0"
+  path: "/metrics"
+
+# =============================================================================
+# PRODUCTION MONITORING CHECKLIST
+# =============================================================================
+#
+# After enabling production mode, monitor for 24 hours:
+#
+# 1. Price Accuracy:
+#    - Compare with external price feeds periodically
+#    - Alert if spread > expected threshold
+#
+# 2. Latency:
+#    - Monitor P99 latency via Prometheus
+#    - Alert if P99 > 0.2ms (target: <0.1ms)
+#
+# 3. Throughput:
+#    - Monitor ticks_published metric
+#    - Alert if dropped_frames > 0
+#
+# 4. Connectivity:
+#    - Monitor reconnect_count metric
+#    - Alert if reconnections > 5/hour
+#
+# 5. Resource Usage:
+#    - Monitor memory usage (target: <10MB)
+#    - Monitor CPU usage (should be stable)
+#
+# =============================================================================

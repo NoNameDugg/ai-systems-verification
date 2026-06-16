@@ -1,0 +1,55 @@
+[package]
+name = "blackbox"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Flight Recorder for trading systems - Zero-allocation journaling and replay"
+
+[dependencies]
+blackbox-types.workspace = true
+memmap2.workspace = true
+crossbeam.workspace = true
+parking_lot.workspace = true
+sha2.workspace = true
+crc32fast.workspace = true
+zstd.workspace = true
+chrono.workspace = true
+clap.workspace = true
+
+[dev-dependencies]
+criterion.workspace = true
+tempfile.workspace = true
+
+[[bin]]
+name = "blackbox"
+path = "src/bin/main.rs"
+
+[features]
+default = []
+
+[[bench]]
+name = "journal_bench"
+harness = false
+
+[[bench]]
+name = "tap_latency_bench"
+harness = false
+
+[[bench]]
+name = "clock_bench"
+harness = false
+
+[[bench]]
+name = "data_source_bench"
+harness = false
+
+[[bench]]
+name = "replay_engine_bench"
+harness = false
+
+[[bench]]
+name = "production_overhead_bench"
+harness = false
+
+[build-dependencies]
+# SBE schema compilation (to be added)

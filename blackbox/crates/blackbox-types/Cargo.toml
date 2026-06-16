@@ -1,0 +1,19 @@
+[package]
+name = "blackbox-types"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared types for the BlackBox flight recorder - Clock, Exchange, Instrument, Side"
+
+[dependencies]
+# Minimal dependencies - this crate must be lightweight
+
+[dev-dependencies]
+criterion.workspace = true
+
+[features]
+default = []
+
+[[bench]]
+name = "clock_bench"
+harness = false

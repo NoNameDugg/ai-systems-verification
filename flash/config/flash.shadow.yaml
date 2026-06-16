@@ -1,0 +1,116 @@
+# =============================================================================
+# Flash Configuration - Shadow Mode
+# Runs in parallel with an existing producer for validation
+# =============================================================================
+#
+# Shadow Mode writes to separate Redis namespaces so output can be compared
+# against the incumbent producer without disturbing it:
+#   Incumbent: market:orderbook:EUR_USD        (primary)
+#   Flash:     market:orderbook:rust:EUR_USD   (shadow)
+#
+# To enable shadow mode:
+#   1. Load this config file, OR
+#   2. Set environment variable: ASTRA_FLASH_SHADOW_MODE_ENABLED=true
+#
+# Acceptance Criteria for cutover:
+#   - Price Match: 100% (within 1e-10 float tolerance) vs the incumbent
+#   - Latency: must be lower than the incumbent's P99
+#   - Data Completeness: no missing ticks relative to the incumbent
+#   - Stability: 1 hour continuous operation without crash
+# =============================================================================
+
+# Enable Shadow Mode - writes to :rust: namespace
+shadow_mode:
+  enabled: true
+  namespace: "rust"
+
+# WebSocket settings (same as production)
+websocket:
+  connect_timeout_ms: 5000
+  read_timeout_ms: 5000
+  ping_interval_ms: 30000
+  pong_timeout_ms: 10000
+  max_reconnect_attempts: 10
+  reconnect_delay_ms: 1000
+  max_reconnect_delay_ms: 30000
+  reconnect_jitter: 0.1
+
+# Order book settings (same as production)
+orderbook:
+  max_depth: 50
+  max_levels: 100
+  track_orders: false
+  auto_prune: true
+  gap_handling: snapshot
+
+# Redis configuration (container network)
+redis:
+  url: "redis://redis:6379"
+  database: 0
+  pool_size: 10
+  connect_timeout_ms: 5000
+  command_timeout_ms: 1000
+  batch_size: 100
+  batch_timeout_ms: 10
+  health_check_interval_ms: 5000
+
+# Publisher settings - JSON format for comparator readability
+publisher:
+  format: json
+  debug_json_fallback: false
+  topic_prefix: "astra:signals:flash"
+  backpressure:
+    capacity: 10000
+    warn_threshold: 0.75
+    critical_threshold: 0.95
+    action: drop_oldest
+
+# =============================================================================
+# EXCHANGE CONFIGURATIONS (same as production)
+# =============================================================================
+
+exchanges:
+  # Deribit (disabled)
+  deribit:
+    enabled: false
+    ws_url: "wss://www.deribit.com/ws/api/v2"
+    rate_limit_per_second: 20
+    instruments: []
+
+  # Binance (disabled)
+  binance:
+    enabled: false
+    ws_url: "wss://stream.binance.com:9443/ws"
+    rate_limit_per_second: 20
+    instruments: []
+
+  # OANDA (ENABLED - Practice Account)
+  oanda:
+    enabled: true
+    ws_url: "wss://stream-fxpractice.oanda.com/v3/accounts"
+    api_key: ""
+    account_id: ""
+    rate_limit_per_second: 100
+    instruments:
+      - EUR_USD
+      - GBP_USD
+      - USD_JPY
+      - USD_CHF
+      - AUD_USD
+      - NZD_USD
+      - USD_CAD
+
+# Logging - debug level for shadow mode validation
+logging:
+  level: debug
+  format: json
+  file_path: null
+  max_file_size_mb: 100
+  max_files: 5
+
+# Metrics (Prometheus)
+metrics:
+  enabled: true
+  port: 9091  # Different port from production (9090)
+  bind_address: "0.0.0.0"
+  path: "/metrics"

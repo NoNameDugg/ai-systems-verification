@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    BlackBox SBE Schema v1.0
+
+    This schema defines the binary message formats for journal records.
+
+    VERSIONING RULES:
+    - MINOR version: Append-only changes (new fields at end, new message types)
+    - MAJOR version: Breaking changes (field reordering, type changes, removals)
+
+    COMPATIBILITY:
+    - Readers MUST handle unknown fields by skipping
+    - Writers MUST NOT remove or reorder existing fields
+-->
+<sbe:messageSchema xmlns:sbe="http://fixprotocol.io/2016/sbe"
+                   package="blackbox"
+                   id="1"
+                   version="0"
+                   semanticVersion="1.0"
+                   description="BlackBox Journal Messages"
+                   byteOrder="littleEndian">
+
+    <!-- Primitive Types -->
+    <types>
+        <type name="int8" primitiveType="int8"/>
+        <type name="int16" primitiveType="int16"/>
+        <type name="int32" primitiveType="int32"/>
+        <type name="int64" primitiveType="int64"/>
+        <type name="uint8" primitiveType="uint8"/>
+        <type name="uint16" primitiveType="uint16"/>
+        <type name="uint32" primitiveType="uint32"/>
+        <type name="uint64" primitiveType="uint64"/>
+
+        <!-- Timestamp in microseconds since Unix epoch -->
+        <type name="timestamp" primitiveType="int64"/>
+
+        <!-- Exchange identifier -->
+        <type name="exchangeId" primitiveType="uint8"/>
+
+        <!-- Record type identifier -->
+        <type name="recordType" primitiveType="uint16"/>
+
+        <!-- CRC32 checksum -->
+        <type name="crc32" primitiveType="uint32"/>
+
+        <!-- SHA-256 hash (32 bytes) -->
+        <composite name="sha256">
+            <type name="bytes" primitiveType="uint8" length="32"/>
+        </composite>
+
+        <!-- Fixed-length symbol (32 bytes) -->
+        <composite name="symbol">
+            <type name="data" primitiveType="char" length="32"/>
+            <type name="length" primitiveType="uint8"/>
+        </composite>
+
+        <!-- Variable-length data header -->
+        <composite name="varData">
+            <type name="length" primitiveType="uint32"/>
+        </composite>
+    </types>
+
+    <!-- Enumerations -->
+    <types>
+        <!-- Exchange enumeration -->
+        <enum name="Exchange" encodingType="uint8">
+            <validValue name="Unknown">0</validValue>
+            <validValue name="Deribit">1</validValue>
+            <validValue name="Binance">2</validValue>
+            <validValue name="Bybit">3</validValue>
+            <validValue name="OKX">4</validValue>
+        </enum>
+
+        <!-- Order side enumeration -->
+        <enum name="Side" encodingType="uint8">
+            <validValue name="Buy">0</validValue>
+            <validValue name="Sell">1</validValue>
+        </enum>
+
+        <!-- Record type enumeration -->
+        <enum name="RecordTypeEnum" encodingType="uint16">
+            <!-- System records: 0x0000-0x00FF -->
+            <validValue name="Unknown">0</validValue>
+            <validValue name="SessionStart">1</validValue>
+            <validValue name="SessionEnd">2</validValue>
+            <validValue name="Checkpoint">3</validValue>
+
+            <!-- Market data: 0x0100-0x01FF -->
+            <validValue name="RawFrame">256</validValue>
+            <validValue name="QuoteUpdate">257</validValue>
+            <validValue name="Trade">258</validValue>
+            <validValue name="BookSnapshot">259</validValue>
+
+            <!-- Orders: 0x0200-0x02FF -->
+            <validValue name="OrderSubmit">512</validValue>
+            <validValue name="OrderAck">513</validValue>
+            <validValue name="OrderFill">514</validValue>
+            <validValue name="OrderCancel">515</validValue>
+
+            <!-- Internal: 0x0300-0x03FF -->
+            <validValue name="StateChange">768</validValue>
+            <validValue name="Signal">769</validValue>
+        </enum>
+    </types>
+
+    <!-- Messages -->
+
+    <!-- Session Start: Marks beginning of recording session -->
+    <sbe:message name="SessionStart" id="1" description="Session start marker">
+        <field name="timestamp" id="1" type="timestamp"/>
+        <field name="sessionId" id="2" type="uint64"/>
+        <field name="exchange" id="3" type="Exchange"/>
+        <data name="metadata" id="4" type="varData"/>
+    </sbe:message>
+
+    <!-- Session End: Marks end of recording session -->
+    <sbe:message name="SessionEnd" id="2" description="Session end marker">
+        <field name="timestamp" id="1" type="timestamp"/>
+        <field name="sessionId" id="2" type="uint64"/>
+        <field name="recordCount" id="3" type="uint64"/>
+        <field name="finalStateHash" id="4" type="sha256"/>
+    </sbe:message>
+
+    <!-- Checkpoint: Periodic state snapshot for verification -->
+    <sbe:message name="Checkpoint" id="3" description="State checkpoint">
+        <field name="timestamp" id="1" type="timestamp"/>
+        <field name="sequenceNumber" id="2" type="uint64"/>
+        <field name="stateHash" id="3" type="sha256"/>
+        <field name="orderbookHash" id="4" type="sha256"/>
+        <field name="positionHash" id="5" type="sha256"/>
+    </sbe:message>
+
+    <!-- Raw Frame: Incoming WebSocket frame -->
+    <sbe:message name="RawFrame" id="256" description="Raw WebSocket frame">
+        <field name="timestamp" id="1" type="timestamp"/>
+        <field name="exchange" id="2" type="Exchange"/>
+        <field name="sequenceNumber" id="3" type="uint32"/>
+        <data name="payload" id="4" type="varData"/>
+    </sbe:message>
+
+    <!-- Quote Update: Parsed quote change -->
+    <sbe:message name="QuoteUpdate" id="257" description="Quote update">
+        <field name="timestamp" id="1" type="timestamp"/>
+        <field name="exchange" id="2" type="Exchange"/>
+        <field name="symbol" id="3" type="symbol"/>
+        <field name="bidPrice" id="4" type="int64"/>
+        <field name="bidSize" id="5" type="int64"/>
+        <field name="askPrice" id="6" type="int64"/>
+        <field name="askSize" id="7" type="int64"/>
+    </sbe:message>
+
+    <!-- Trade: Executed trade -->
+    <sbe:message name="Trade" id="258" description="Trade execution">
+        <field name="timestamp" id="1" type="timestamp"/>
+        <field name="exchange" id="2" type="Exchange"/>
+        <field name="symbol" id="3" type="symbol"/>
+        <field name="price" id="4" type="int64"/>
+        <field name="size" id="5" type="int64"/>
+        <field name="side" id="6" type="Side"/>
+        <data name="tradeId" id="7" type="varData"/>
+    </sbe:message>
+
+    <!-- Order Submit: Outgoing order -->
+    <sbe:message name="OrderSubmit" id="512" description="Order submission">
+        <field name="timestamp" id="1" type="timestamp"/>
+        <field name="exchange" id="2" type="Exchange"/>
+        <field name="symbol" id="3" type="symbol"/>
+        <field name="side" id="4" type="Side"/>
+        <field name="price" id="5" type="int64"/>
+        <field name="size" id="6" type="int64"/>
+        <data name="clientOrderId" id="7" type="varData"/>
+    </sbe:message>
+
+    <!-- Order Ack: Order acknowledgment from exchange -->
+    <sbe:message name="OrderAck" id="513" description="Order acknowledgment">
+        <field name="timestamp" id="1" type="timestamp"/>
+        <field name="exchange" id="2" type="Exchange"/>
+        <data name="clientOrderId" id="3" type="varData"/>
+        <data name="exchangeOrderId" id="4" type="varData"/>
+    </sbe:message>
+
+    <!-- Order Fill: Order fill notification -->
+    <sbe:message name="OrderFill" id="514" description="Order fill">
+        <field name="timestamp" id="1" type="timestamp"/>
+        <field name="exchange" id="2" type="Exchange"/>
+        <field name="fillPrice" id="3" type="int64"/>
+        <field name="fillSize" id="4" type="int64"/>
+        <field name="remainingSize" id="5" type="int64"/>
+        <data name="exchangeOrderId" id="6" type="varData"/>
+    </sbe:message>
+
+    <!-- State Change: Internal state mutation -->
+    <sbe:message name="StateChange" id="768" description="Internal state change">
+        <field name="timestamp" id="1" type="timestamp"/>
+        <field name="eventType" id="2" type="uint16"/>
+        <data name="stateData" id="3" type="varData"/>
+    </sbe:message>
+
+    <!-- Signal: Trading signal generated -->
+    <sbe:message name="Signal" id="769" description="Trading signal">
+        <field name="timestamp" id="1" type="timestamp"/>
+        <field name="signalType" id="2" type="uint16"/>
+        <field name="exchange" id="3" type="Exchange"/>
+        <field name="symbol" id="4" type="symbol"/>
+        <field name="side" id="5" type="Side"/>
+        <field name="strength" id="6" type="int64"/>
+        <data name="metadata" id="7" type="varData"/>
+    </sbe:message>
+
+</sbe:messageSchema>
