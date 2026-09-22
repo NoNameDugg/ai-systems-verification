@@ -46,36 +46,52 @@ blackbox-types = { path = "crates/blackbox-types" }
 ```rust
 use blackbox::journal::{JournalWriter, WriterConfig};
 use blackbox::tap::{JournalTap, Tap};
-use blackbox_types::{Exchange, Timestamp};
+use blackbox_types::{Clock, Exchange, SystemClock};
 
-// Create a recording tap
+let clock = SystemClock;
 let writer = JournalWriter::new("session.journal", WriterConfig::default())?;
 let tap = JournalTap::new(writer);
 
-// Record events
-tap.record_ingress(Exchange::Deribit, &websocket_frame, Timestamp::now());
-tap.record_internal(0x0010, &orderbook_snapshot, Timestamp::now());
-tap.record_egress(Exchange::Deribit, &order_payload, Timestamp::now());
+// Record events (ingress / internal / egress tap points)
+tap.record_ingress(Exchange::Deribit, b"websocket frame", clock.now());
+tap.record_internal(0x0010, b"orderbook snapshot", clock.now());
+tap.record_egress(Exchange::Deribit, b"order payload", clock.now());
+drop(tap); // flush + close
 ```
 
-### Replay
+### Reading back and replaying
 
 ```rust
 use blackbox::journal::JournalReader;
-use blackbox::replay::{ReplayEngine, JournalDataSource, WarpConfig};
-use blackbox_types::SimulatedClock;
+use blackbox::replay::{BufferedDataSource, DataFrame, FrameType, ReplayEngine, WarpConfig};
+use blackbox_types::{Exchange, Timestamp};
 
-// Load journal
+// Read the journal back
 let reader = JournalReader::open("session.journal")?;
-let frames: Vec<_> = reader.filter_map(|r| r.ok()).collect();
+let records: Vec<_> = reader.filter_map(|r| r.ok()).collect();
 
-// Replay with warp-speed
-let source = JournalDataSource::from_frames(frames);
-let clock = SimulatedClock::new(Timestamp::EPOCH);
-let mut engine = ReplayEngine::new(source, clock, WarpConfig::warp_speed());
-
-engine.run_to_completion();
+// Replay a frame sequence at warp speed (idle gaps skipped)
+let frames = vec![
+    DataFrame::new(
+        Timestamp::from_micros(1_000),
+        Exchange::Deribit,
+        FrameType::Trade,
+        vec![],
+    ),
+    DataFrame::new(
+        Timestamp::from_micros(2_000),
+        Exchange::Deribit,
+        FrameType::Trade,
+        vec![],
+    ),
+];
+let mut engine =
+    ReplayEngine::with_data_source(BufferedDataSource::new(frames), WarpConfig::instant());
+engine.play();
+let replayed = engine.run_to_completion();
 ```
+
+This exact code lives in [`examples/quickstart.rs`](crates/blackbox/examples/quickstart.rs) and is compiled in CI (`cargo run --example quickstart`); the example writes the journal to a temporary directory instead of the working directory.
 
 ### CLI
 
@@ -376,6 +392,13 @@ See [docs/INTEGRATION.md](docs/INTEGRATION.md) for detailed integration instruct
 - Update documentation as needed
 - Run `cargo fmt` before committing
 - Ensure `cargo clippy` passes with no warnings
+
+---
+
+## Limitations
+
+- `ReplayEngine::load()` is present but not yet wired to replay a journal end-to-end; use `BufferedDataSource` as shown in the Quick Start.
+- Appending to a non-empty journal is not supported.
 
 ---
 
