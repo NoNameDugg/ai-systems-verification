@@ -16,7 +16,7 @@ BlackBox is a **deterministic recording and replay system** for high-frequency t
 - **Clock Control** - Pause, step-through, fast-forward, and warp-speed modes
 - **State Verification** - SHA-256 checkpoint comparison during replay
 - **Self-Describing Format** - Embedded SBE schema ensures 10+ year readability
-- **Feature-Complete (portfolio project)** - Multi-platform support, 979 tests
+- **Feature-Complete (portfolio project)** - Multi-platform support, 979 tests (as reported by CI; a further 18 doctests are `ignore`d)
 
 ## Performance
 
@@ -334,7 +334,7 @@ cargo bench
 | Zero-allocation tests | 15 |
 | Unit tests (blackbox-types) | 25 |
 | Doc-tests | 68 |
-| **Total** | **979** |
+| **Total** | **979** (as reported by CI; a further 18 doctests are `ignore`d) |
 
 ---
 

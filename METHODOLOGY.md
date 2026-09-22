@@ -52,7 +52,7 @@ implementation merely satisfies it. The standard for a component is:
   move outside a declared tolerance.
 
 The components shipped here carry their real suites: the Rust flight-recorder and order-book
-adapter, the Python risk gate (455 tests), and the falsification gauntlet all build and test from a
+adapter, the Python risk gate (456 tests), and the falsification gauntlet all build and test from a
 clean checkout. **Test counts in this repo are emitted by CI, never typed into a README** — a
 hand-written badge is exactly the kind of unverified claim this methodology exists to forbid.
 

@@ -84,7 +84,7 @@ load-bearing, reusable pieces of that path — each one self-contained, tested, 
 
 - **`correlation-gate/` — a risk gate.** One of the fail-closed gates in the risk stack: a
   thread-safe semaphore that prevents concurrent strategies from stacking correlated exposure. It
-  fails *closed* — if it cannot prove a trade is safe, it rejects it. (455 tests, ~99% coverage.)
+  fails *closed* — if it cannot prove a trade is safe, it rejects it. (456 tests.)
 
 - **`blackbox/` — the flight-recorder.** The capture layer: a deterministic, lock-free Rust
   journaling engine with microsecond timestamps and SHA-256-verified replay, so any live session can

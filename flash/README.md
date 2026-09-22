@@ -5,7 +5,6 @@
 [![Status](https://img.shields.io/badge/status-research%2Fportfolio%20prototype-yellow.svg)](#status)
 [![Rust](https://img.shields.io/badge/rust-1.92%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1222%20passing-green.svg)](#testing)
 
 ---
 
@@ -118,7 +117,7 @@ spread_bps = book.spread_bps
 - **Thread-Safe:** parking_lot RwLock for concurrent access
 - **Redis Streams:** High-throughput data distribution
 - **Python Bindings:** Zero-copy PyO3 integration
-- **Well-Tested:** 1222 passing tests, plus chaos tests and an operations runbook
+- **Well-Tested:** 1,221 tests pass in CI (`cargo test --tests --lib`, 37 ignored); 1,231 with `--features blackbox`; plus chaos tests and an operations runbook
 - **Prometheus Metrics:** Built-in observability
 
 ---
@@ -200,7 +199,7 @@ flash/
 │   ├── lib.rs                        # Library entry point
 │   └── main.rs                       # Binary entry point
 │
-├── tests/                            # Wired test suites (1222 passing tests)
+├── tests/                            # Wired test suites (1,221 tests pass in CI, 37 ignored; see Testing)
 │   ├── chaos/                        # Chaos tests (61 tests)
 │   │   ├── helpers/
 │   │   │   └── mod.rs                # Chaos test helpers
@@ -286,7 +285,7 @@ flash/
 ### Run All Tests
 
 ```bash
-# Run all tests (1222 passing across the wired suites)
+# Run all tests. CI runs `cargo test --tests --lib`: 1,221 tests pass (37 ignored); 1,231 with `--features blackbox`
 cargo test
 
 # Run with output

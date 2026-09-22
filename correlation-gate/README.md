@@ -2,10 +2,7 @@
 
 **A fail-closed correlation risk gate for forex trading**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](#)
 [![Python](https://img.shields.io/badge/python-3.10+-green.svg)](https://python.org)
-[![Tests](https://img.shields.io/badge/tests-456-brightgreen.svg)](tests/)
-[![Coverage](https://img.shields.io/badge/coverage-99%25-brightgreen.svg)](htmlcov/)
 
 ---
 
@@ -33,8 +30,10 @@ new signal.
 
 ### Testing
 
-The suite has **456 tests (455 passing, 1 skipped)** at **99% line coverage**
-(`pytest --cov=src`). See [Testing](#testing) for how to run it.
+The suite collects **456 tests**. The default run reports **420 passed, 36 skipped** (the 36 are
+wall-clock perf tests, opt-in via `--runperf`, which reports **455 passed, 1 skipped**). Line coverage
+measured with `python -m pytest --cov=src` is **99%** (1,397 statements, 12 missed). See
+[Testing](#testing) for how to run it.
 
 ---
 
@@ -194,7 +193,7 @@ correlation-gate/
 ### Quick Links
 
 The public interface is `CorrelationGateAPI` in [`src/api.py`](src/api.py); behaviour is documented inline and
-demonstrated across the `tests/` suite (455 tests). Integration is provider-based — implement the `PositionProvider`
+demonstrated across the `tests/` suite (456 tests). Integration is provider-based — implement the `PositionProvider`
 interface (see `src/providers/`) to wire the gate to any trading engine or market simulator.
 
 ### Architecture
@@ -262,8 +261,8 @@ python -m pytest tests/performance/ -q    # Performance tests
 
 | Metric | Value |
 |--------|-------|
-| Total tests | 456 (455 passing, 1 skipped) |
-| Line coverage | 99% (`pytest --cov=src`) |
+| Collected | 456 — default 420 passed / 36 skipped; `--runperf` 455 passed / 1 skipped |
+| Line coverage | 99% (`pytest --cov=src`; 1,397 stmts / 12 missed) |
 
 Tests are organized into unit, integration, race-condition, and performance
 suites under `tests/`.
@@ -341,7 +340,7 @@ Benchmark scaffolding lives under `tests/performance/` and `tests/benchmarks/`.
 
 1. Follow the coding standards in [STANDARDS.md](docs/STANDARDS.md)
 2. Write tests first
-3. Keep coverage high for new code (the suite currently sits at 99%)
+3. Keep coverage high for new code (99% measured; see Test Statistics)
 4. Update documentation for API changes
 
 ---

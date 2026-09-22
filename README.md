@@ -91,7 +91,7 @@ seam.
 ### `correlation-gate/` — a fail-closed safety gate
 A thread-safe semaphore that stops concurrent processes from stacking correlated exposure. It fails
 *closed*: if it cannot prove an action is safe, it rejects it. Extensively tested (unit, integration,
-concurrency, chaos) at ~99% coverage; the wall-clock perf benchmarks are opt-in (`--runperf`).
+concurrency, chaos) with 99% line coverage measured by `pytest --cov=src`; the wall-clock perf benchmarks are opt-in (`--runperf`).
 **Demonstrates: concurrency, defensive systems design, rule-based safety controls.**
 
 ---

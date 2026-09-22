@@ -35,8 +35,7 @@ tests/
 
 ### Unit Tests (`unit/`)
 Isolated tests for individual components.
-- **437+ tests** covering all modules
-- **99% code coverage**
+- 99% line coverage measured with `pytest --cov=src` (abstract-method bodies excluded); generate the HTML report with `--cov-report=html`
 - Fast execution (< 30 seconds total)
 
 ### Integration Tests (`integration/`)
@@ -132,8 +131,7 @@ def test_gate_blocks_excessive_exposure():
 ## Coverage Requirements
 
 - **Target:** 100% coverage
-- **Current:** 99% (abstract methods excluded)
-- **Report:** `htmlcov/index.html`
+- **Current:** 99% measured with `pytest --cov=src` (abstract-method bodies excluded); generate the HTML report with `--cov-report=html`
 
 ## Quality Gates
 
@@ -142,5 +140,5 @@ All tests must pass before merge:
 2. Integration tests pass
 3. Performance budgets met
 4. Race condition tests pass
-5. Coverage ≥ 95%
+5. Coverage ≥ 95% (enforced in CI via `--cov-fail-under=95`)
 

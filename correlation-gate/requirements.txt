@@ -9,6 +9,7 @@
 
 # --- Test dependencies ---
 pytest>=7.0
+pytest-cov>=4.0
 
 # --- Optional test plugins ---
 # Uncomment if you want performance benchmarks or parallel test execution.
