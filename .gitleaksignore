@@ -1,0 +1,14 @@
+# gitleaks fingerprints (commit:file:rule:line) for KNOWN false positives.
+# Each entry is pinned to one exact commit and line, so a new secret, even in
+# the same file, is still caught by the full-history scan in CI.
+#
+# Triaged 2026-09-22 with gitleaks 8.30.1 over the full history: all four hits
+# are synthetic placeholder values inside flash/tests/production/security_test.rs,
+# a test whose purpose is to prove that credential-shaped strings get masked.
+# They are a toy Stripe-shaped key with an obviously fake tail, a placeholder
+# secret, and the well-known jwt.io example token (HS256 header, sub 1234567890,
+# no signature). None is, or ever was, a real credential.
+2472368606b1acb773c3e24749a6f7349c7e3b6a:flash/tests/production/security_test.rs:stripe-access-token:20
+2472368606b1acb773c3e24749a6f7349c7e3b6a:flash/tests/production/security_test.rs:generic-api-key:21
+2472368606b1acb773c3e24749a6f7349c7e3b6a:flash/tests/production/security_test.rs:stripe-access-token:187
+2472368606b1acb773c3e24749a6f7349c7e3b6a:flash/tests/production/security_test.rs:generic-api-key:189
