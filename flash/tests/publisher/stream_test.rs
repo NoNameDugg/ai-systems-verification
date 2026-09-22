@@ -23,7 +23,7 @@
 
 use astra_flash::book::{OrderBook, OrderBookConfig};
 use astra_flash::core::types::{
-    Exchange, Instrument, MarketData, MarketEvent, MarketEventType, PriceLevel, Side, now_micros,
+    now_micros, Exchange, Instrument, MarketData, MarketEvent, MarketEventType, PriceLevel, Side,
 };
 use astra_flash::publisher::stream::{
     PublishResult, SerializationFormat, StreamError, StreamPublisher, StreamPublisherBuilder,
@@ -249,7 +249,9 @@ fn test_topic_lowercase_conversion() {
     let builder = TopicBuilder::new("MARKET_DATA");
     let topic = builder.market_data(Exchange::Deribit, "BTC", "USD", TopicType::Book);
     // Should convert to lowercase
-    assert!(topic.chars().all(|c| c.is_lowercase() || c == '.' || c == '_'));
+    assert!(topic
+        .chars()
+        .all(|c| c.is_lowercase() || c == '.' || c == '_'));
 }
 
 #[test]
@@ -479,8 +481,8 @@ fn test_stats_clone() {
 
 #[test]
 fn test_stats_concurrent_access() {
-    use std::sync::Arc;
     use parking_lot::RwLock;
+    use std::sync::Arc;
     use std::thread;
 
     let stats = Arc::new(RwLock::new(StreamStats::default()));
@@ -616,8 +618,7 @@ fn test_builder_chain() {
 
 #[test]
 fn test_builder_config_access() {
-    let builder = StreamPublisherBuilder::default()
-        .format(SerializationFormat::Json);
+    let builder = StreamPublisherBuilder::default().format(SerializationFormat::Json);
 
     // Should be able to access config without consuming builder
     let config1 = builder.config();

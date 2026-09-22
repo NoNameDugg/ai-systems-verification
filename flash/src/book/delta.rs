@@ -265,7 +265,11 @@ impl DeltaBatch {
 
     /// Creates a batch with sequence number.
     #[must_use]
-    pub const fn with_sequence(sequence: u64, updates: Vec<DeltaUpdate>, timestamp: Timestamp) -> Self {
+    pub const fn with_sequence(
+        sequence: u64,
+        updates: Vec<DeltaUpdate>,
+        timestamp: Timestamp,
+    ) -> Self {
         Self {
             sequence: Some(sequence),
             updates,
@@ -934,8 +938,8 @@ impl DeltaProcessor {
                             expected: gap.expected,
                             actual: gap.received,
                         });
-                    },
-                    SequenceCheckResult::Ok | SequenceCheckResult::OutOfOrder => {},
+                    }
+                    SequenceCheckResult::Ok | SequenceCheckResult::OutOfOrder => {}
                 }
             }
         }
@@ -992,8 +996,8 @@ impl DeltaProcessor {
                             expected: gap.expected,
                             actual: gap.received,
                         });
-                    },
-                    SequenceCheckResult::Ok | SequenceCheckResult::OutOfOrder => {},
+                    }
+                    SequenceCheckResult::Ok | SequenceCheckResult::OutOfOrder => {}
                 }
             }
         }

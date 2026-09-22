@@ -58,23 +58,11 @@ fn create_book_snapshot(best_bid: f64, best_ask: f64, depth: usize) -> BookSnaps
     let mut book = OrderBook::new(instrument, config);
 
     let bids: Vec<PriceLevel> = (0..depth)
-        .map(|i| {
-            PriceLevel::new(
-                best_bid - (i as f64 * 0.0001),
-                dec!(1000000),
-                now_micros(),
-            )
-        })
+        .map(|i| PriceLevel::new(best_bid - (i as f64 * 0.0001), dec!(1000000), now_micros()))
         .collect();
 
     let asks: Vec<PriceLevel> = (0..depth)
-        .map(|i| {
-            PriceLevel::new(
-                best_ask + (i as f64 * 0.0001),
-                dec!(800000),
-                now_micros(),
-            )
-        })
+        .map(|i| PriceLevel::new(best_ask + (i as f64 * 0.0001), dec!(800000), now_micros()))
         .collect();
 
     book.apply_snapshot(bids, asks, now_micros());
@@ -224,7 +212,8 @@ fn test_real_world_price_deltas() {
         let delta = price_delta(price1, price2);
         let passes = delta < DELTA_THRESHOLD;
         assert_eq!(
-            passes, expected_pass,
+            passes,
+            expected_pass,
             "Delta {} between {} and {} should {} but {}",
             delta,
             price1,
@@ -327,7 +316,10 @@ fn test_mathematical_proof_all_criteria_pass() {
     let rust_faster_rate = (rust_faster_count as f64 / total_ticks as f64) * 100.0;
 
     // Criterion 1: Price Match 100%
-    assert!(price_match_rate >= 99.99, "Price match rate must be >= 99.99%");
+    assert!(
+        price_match_rate >= 99.99,
+        "Price match rate must be >= 99.99%"
+    );
 
     // Criterion 2: Rust Latency < Python P99
     assert!(
@@ -339,10 +331,16 @@ fn test_mathematical_proof_all_criteria_pass() {
     assert_eq!(rust_missing, 0, "No missing ticks allowed");
 
     // Criterion 4: Delta < 0.0001 (Batch 5.2)
-    assert!(max_price_delta < DELTA_THRESHOLD, "Max delta must be < 0.0001");
+    assert!(
+        max_price_delta < DELTA_THRESHOLD,
+        "Max delta must be < 0.0001"
+    );
 
     // Criterion 5: 1 hour stability
-    assert!(total_ticks >= ONE_HOUR_TICKS, "Must run for at least 1 hour");
+    assert!(
+        total_ticks >= ONE_HOUR_TICKS,
+        "Must run for at least 1 hour"
+    );
 
     // Criterion 6: Rust faster > 50%
     assert!(

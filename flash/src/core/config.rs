@@ -114,7 +114,6 @@ pub enum GapHandling {
     Skip,
 }
 
-
 /// Serialization format for Redis publishing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -129,7 +128,6 @@ pub enum SerializationFormat {
     Rkyv,
 }
 
-
 /// Backpressure action when queue is full.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -143,7 +141,6 @@ pub enum BackpressureAction {
     /// Block producer until space available.
     Block,
 }
-
 
 /// Log level enumeration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -163,7 +160,6 @@ pub enum LogLevel {
     Error,
 }
 
-
 /// Log format enumeration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -175,7 +171,6 @@ pub enum LogFormat {
     #[default]
     Json,
 }
-
 
 // =============================================================================
 // CONFIGURATION STRUCTS
@@ -910,7 +905,6 @@ pub struct FlashConfig {
     pub shadow_mode: ShadowModeConfig,
 }
 
-
 impl FlashConfig {
     /// Load configuration from a YAML file.
     ///
@@ -1117,7 +1111,7 @@ impl FlashConfig {
                     return Err(FlashError::ConfigError(format!(
                         "Invalid value for ASTRA_FLASH_PUBLISHER_FORMAT: {val}"
                     )))
-                },
+                }
             };
         }
         if let Ok(val) = std::env::var("ASTRA_FLASH_PUBLISHER_BACKPRESSURE_CAPACITY") {
@@ -1140,7 +1134,7 @@ impl FlashConfig {
                     return Err(FlashError::ConfigError(format!(
                         "Invalid value for ASTRA_FLASH_LOGGING_LEVEL: {val}"
                     )))
-                },
+                }
             };
         }
 
@@ -1208,10 +1202,10 @@ impl FlashConfig {
                         base_map.insert(key.clone(), value.clone());
                     }
                 }
-            },
+            }
             (base, overlay) => {
                 *base = overlay.clone();
-            },
+            }
         }
     }
 }

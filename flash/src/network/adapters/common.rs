@@ -63,7 +63,7 @@ pub fn parse_quantity(value: &serde_json::Value) -> Result<Quantity, FlashError>
                 quantity: s.clone(),
                 reason: format!("Failed to parse quantity: {e}"),
             })
-        },
+        }
         serde_json::Value::Number(n) => {
             // Convert number to string first for precise parsing
             let s = n.to_string();
@@ -71,7 +71,7 @@ pub fn parse_quantity(value: &serde_json::Value) -> Result<Quantity, FlashError>
                 quantity: s,
                 reason: format!("Failed to parse quantity: {e}"),
             })
-        },
+        }
         _ => Err(FlashError::InvalidQuantity {
             quantity: format!("{value:?}"),
             reason: "Expected string or number".to_string(),
@@ -106,7 +106,7 @@ pub fn parse_timestamp(
             return Err(FlashError::ParseError(
                 serde_json::from_str::<i64>("invalid").unwrap_err(),
             ))
-        },
+        }
     };
 
     // Convert to microseconds if needed
@@ -212,13 +212,17 @@ pub fn get_str<'a>(json: &'a serde_json::Value, key: &str) -> &'a str {
 /// Get an i64 field from a JSON object, or return 0.
 #[allow(dead_code)]
 pub fn get_i64(json: &serde_json::Value, key: &str) -> i64 {
-    json.get(key).and_then(serde_json::Value::as_i64).unwrap_or(0)
+    json.get(key)
+        .and_then(serde_json::Value::as_i64)
+        .unwrap_or(0)
 }
 
 /// Get a u64 field from a JSON object, or return 0.
 #[allow(dead_code)]
 pub fn get_u64(json: &serde_json::Value, key: &str) -> u64 {
-    json.get(key).and_then(serde_json::Value::as_u64).unwrap_or(0)
+    json.get(key)
+        .and_then(serde_json::Value::as_u64)
+        .unwrap_or(0)
 }
 
 /// Check if a JSON string contains a substring (fast check before parsing).

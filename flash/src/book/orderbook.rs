@@ -576,13 +576,13 @@ impl OrderBook {
                     if let Some((_, removed)) = book_side.pop_first() {
                         *total_qty -= removed.quantity;
                     }
-                },
+                }
                 Side::Ask => {
                     // Remove highest ask (worst)
                     if let Some((_, removed)) = book_side.pop_last() {
                         *total_qty -= removed.quantity;
                     }
-                },
+                }
             }
         }
 

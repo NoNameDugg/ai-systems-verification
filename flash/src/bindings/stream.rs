@@ -129,12 +129,12 @@ pub fn deserialize_event(data: &[u8], format: &str) -> StreamResult<PyMarketEven
             let event: MarketEvent = serde_json::from_slice(data)
                 .map_err(|e| StreamError::DeserializationFailed(e.to_string()))?;
             Ok(event.into())
-        },
+        }
         "bincode" => {
             let event: MarketEvent = bincode::deserialize(data)
                 .map_err(|e| StreamError::DeserializationFailed(e.to_string()))?;
             Ok(event.into())
-        },
+        }
         _ => Err(StreamError::UnsupportedFormat(format.to_string())),
     }
 }
@@ -161,12 +161,12 @@ pub fn deserialize_book(data: &[u8], format: &str) -> StreamResult<PyBookSnapsho
             let snapshot: BookSnapshot = serde_json::from_slice(data)
                 .map_err(|e| StreamError::DeserializationFailed(e.to_string()))?;
             Ok(snapshot.into())
-        },
+        }
         "bincode" => {
             let snapshot: BookSnapshot = bincode::deserialize(data)
                 .map_err(|e| StreamError::DeserializationFailed(e.to_string()))?;
             Ok(snapshot.into())
-        },
+        }
         _ => Err(StreamError::UnsupportedFormat(format.to_string())),
     }
 }
@@ -610,10 +610,10 @@ impl PyStreamIterator {
             Ok(event) => {
                 self.received_count.fetch_add(1, Ordering::Relaxed);
                 Ok(event)
-            },
+            }
             Err(StreamError::SubscriptionStopped) => {
                 Err(PyStopIteration::new_err("Subscription stopped"))
-            },
+            }
             Err(StreamError::ConnectionError(msg)) => Err(PyConnectionError::new_err(msg)),
             Err(e) => Err(PyRuntimeError::new_err(e.to_string())),
         }
@@ -738,7 +738,7 @@ impl PyStreamIterator {
                                     stats.update_latency(latency);
                                 }
                                 self.buffer.write().push_back(event);
-                            },
+                            }
                             Err(_) => {
                                 // Try as BookSnapshot
                                 if let Ok(snapshot) = deserialize_book(data, &format) {
@@ -755,7 +755,7 @@ impl PyStreamIterator {
                                 } else {
                                     self.stats.write().record_error();
                                 }
-                            },
+                            }
                         }
                     }
                 }

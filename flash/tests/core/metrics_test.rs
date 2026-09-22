@@ -251,7 +251,8 @@ fn test_histogram_bucket_distribution() {
     metrics.record_processing_duration("deribit", ProcessingStage::Parse, 0.1); // 100 ns bucket
     metrics.record_processing_duration("deribit", ProcessingStage::Parse, 1.0); // 1 μs bucket
     metrics.record_processing_duration("deribit", ProcessingStage::Parse, 10.0); // 10 μs bucket
-    metrics.record_processing_duration("deribit", ProcessingStage::Parse, 100.0); // 100 μs bucket
+    metrics.record_processing_duration("deribit", ProcessingStage::Parse, 100.0);
+    // 100 μs bucket
 }
 
 /// Test histogram with labels.
@@ -407,7 +408,10 @@ fn test_enum_display_implementations() {
     assert_eq!(ReconnectReason::ConnectionLost.as_str(), "connection_lost");
     assert_eq!(ReconnectReason::PongTimeout.as_str(), "pong_timeout");
     assert_eq!(ReconnectReason::SequenceGap.as_str(), "sequence_gap");
-    assert_eq!(ReconnectReason::ExchangeDisconnect.as_str(), "exchange_disconnect");
+    assert_eq!(
+        ReconnectReason::ExchangeDisconnect.as_str(),
+        "exchange_disconnect"
+    );
     assert_eq!(ReconnectReason::Manual.as_str(), "manual");
 }
 
@@ -440,7 +444,11 @@ fn test_concurrent_counter_increments() {
         let metrics_clone = Arc::clone(&metrics);
         let handle = thread::spawn(move || {
             for _ in 0..1000 {
-                metrics_clone.record_message_received("deribit", "BTC-PERPETUAL", MessageType::Delta);
+                metrics_clone.record_message_received(
+                    "deribit",
+                    "BTC-PERPETUAL",
+                    MessageType::Delta,
+                );
             }
         });
         handles.push(handle);

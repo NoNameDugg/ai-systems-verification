@@ -703,8 +703,7 @@ impl HeartbeatManager {
         }
 
         // Update metrics
-        self.metrics
-            .record_heartbeat_pong_missed(exchange.as_str());
+        self.metrics.record_heartbeat_pong_missed(exchange.as_str());
     }
 
     /// Get the current health status for an exchange.

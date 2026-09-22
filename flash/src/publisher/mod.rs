@@ -130,12 +130,12 @@ pub use dual::{
 
 // Re-exports for convenience - Backpressure types (Batch 3.3)
 pub use backpressure::{
-    BackpressureConfig, BackpressureConfigBuilder, BackpressureMetrics, BackpressurePolicy,
-    BackpressureResult, BackpressureSendError, BackpressureSender, send_with_backpressure,
+    send_with_backpressure, BackpressureConfig, BackpressureConfigBuilder, BackpressureMetrics,
+    BackpressurePolicy, BackpressureResult, BackpressureSendError, BackpressureSender,
 };
 
 // Re-exports for convenience - Serialization buffer types (Batch 4.2)
 pub use buffer::{
-    BufferStats, SerializationBuffer, size_hints, thread_buffer_stats, with_bincode_buffer,
-    with_json_buffer, DEFAULT_BUFFER_CAPACITY, MAX_BUFFER_CAPACITY,
+    size_hints, thread_buffer_stats, with_bincode_buffer, with_json_buffer, BufferStats,
+    SerializationBuffer, DEFAULT_BUFFER_CAPACITY, MAX_BUFFER_CAPACITY,
 };

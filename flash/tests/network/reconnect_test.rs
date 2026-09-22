@@ -61,7 +61,10 @@ fn create_heartbeat(connector: Arc<Connector>) -> Arc<HeartbeatManager> {
 }
 
 /// Create test reconnection manager.
-fn create_reconnection() -> (ReconnectionManager, tokio::sync::mpsc::Receiver<ReconnectionEvent>) {
+fn create_reconnection() -> (
+    ReconnectionManager,
+    tokio::sync::mpsc::Receiver<ReconnectionEvent>,
+) {
     let config = test_config();
     let connector = create_connector();
     let heartbeat = create_heartbeat(Arc::clone(&connector));
@@ -305,8 +308,15 @@ fn test_backoff_jitter_distribution() {
         .collect();
 
     // Count unique values - should have variety
-    let unique_count = delays.iter().collect::<std::collections::HashSet<_>>().len();
-    assert!(unique_count > 10, "Expected variety in jitter, got {} unique values", unique_count);
+    let unique_count = delays
+        .iter()
+        .collect::<std::collections::HashSet<_>>()
+        .len();
+    assert!(
+        unique_count > 10,
+        "Expected variety in jitter, got {} unique values",
+        unique_count
+    );
 }
 
 #[test]
@@ -341,7 +351,10 @@ fn test_state_is_disabled_when_not_enabled() {
     let (manager, _events) = create_reconnection();
 
     // Not enabled = Disabled status
-    assert_eq!(manager.status(Exchange::Deribit), ReconnectionStatus::Disabled);
+    assert_eq!(
+        manager.status(Exchange::Deribit),
+        ReconnectionStatus::Disabled
+    );
 }
 
 #[test]
@@ -463,7 +476,10 @@ fn test_disable_stops_monitoring() {
     assert_eq!(manager.status(Exchange::Deribit), ReconnectionStatus::Idle);
 
     manager.disable(Exchange::Deribit);
-    assert_eq!(manager.status(Exchange::Deribit), ReconnectionStatus::Disabled);
+    assert_eq!(
+        manager.status(Exchange::Deribit),
+        ReconnectionStatus::Disabled
+    );
 }
 
 #[test]
@@ -505,7 +521,10 @@ fn test_multiple_exchanges_independent() {
     manager.disable(Exchange::Deribit);
 
     // Deribit disabled, Binance still enabled
-    assert_eq!(manager.status(Exchange::Deribit), ReconnectionStatus::Disabled);
+    assert_eq!(
+        manager.status(Exchange::Deribit),
+        ReconnectionStatus::Disabled
+    );
     assert_eq!(manager.status(Exchange::Binance), ReconnectionStatus::Idle);
 }
 
@@ -555,8 +574,14 @@ async fn test_shutdown_disables_all() {
     manager.shutdown().await;
 
     // Both should be disabled
-    assert_eq!(manager.status(Exchange::Deribit), ReconnectionStatus::Disabled);
-    assert_eq!(manager.status(Exchange::Binance), ReconnectionStatus::Disabled);
+    assert_eq!(
+        manager.status(Exchange::Deribit),
+        ReconnectionStatus::Disabled
+    );
+    assert_eq!(
+        manager.status(Exchange::Binance),
+        ReconnectionStatus::Disabled
+    );
 }
 
 #[test]
@@ -621,10 +646,7 @@ fn test_concurrent_subscription_registration() {
             let manager = Arc::clone(&manager);
             thread::spawn(move || {
                 for j in 0..100 {
-                    manager.register_subscription(
-                        Exchange::Deribit,
-                        format!("sub_{}_{}", i, j),
-                    );
+                    manager.register_subscription(Exchange::Deribit, format!("sub_{}_{}", i, j));
                 }
             })
         })
@@ -810,7 +832,10 @@ fn test_disable_already_disabled() {
 
     // Not enabled, disable should be no-op
     manager.disable(Exchange::Deribit);
-    assert_eq!(manager.status(Exchange::Deribit), ReconnectionStatus::Disabled);
+    assert_eq!(
+        manager.status(Exchange::Deribit),
+        ReconnectionStatus::Disabled
+    );
 }
 
 #[test]

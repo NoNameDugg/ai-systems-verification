@@ -9,7 +9,7 @@
 //! - Flood scenario handling
 
 use astra_flash::publisher::backpressure::{
-    BackpressureConfig, BackpressureMetrics, BackpressureSender, send_with_backpressure,
+    send_with_backpressure, BackpressureConfig, BackpressureMetrics, BackpressureSender,
 };
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::sync::Arc;
@@ -104,9 +104,7 @@ fn bench_try_send_normal(c: &mut Criterion) {
                 let (sender, mut receiver) = BackpressureSender::<u64>::with_capacity(cap);
 
                 // Spawn a consumer to drain the channel
-                let consumer = rt.spawn(async move {
-                    while receiver.recv().await.is_some() {}
-                });
+                let consumer = rt.spawn(async move { while receiver.recv().await.is_some() {} });
 
                 b.iter(|| {
                     let _ = black_box(sender.try_send(black_box(42)));
@@ -164,9 +162,7 @@ fn bench_send_with_backpressure_fn(c: &mut Criterion) {
     let metrics = Arc::new(BackpressureMetrics::default());
 
     // Spawn consumer
-    let consumer = rt.spawn(async move {
-        while rx.recv().await.is_some() {}
-    });
+    let consumer = rt.spawn(async move { while rx.recv().await.is_some() {} });
 
     let metrics_clone = Arc::clone(&metrics);
     group.bench_function("normal_send", |b| {
@@ -204,9 +200,8 @@ fn bench_throughput(c: &mut Criterion) {
                         let (sender, mut receiver) = BackpressureSender::<u64>::with_capacity(cap);
 
                         // Spawn consumer
-                        let consumer = rt.spawn(async move {
-                            while receiver.recv().await.is_some() {}
-                        });
+                        let consumer =
+                            rt.spawn(async move { while receiver.recv().await.is_some() {} });
 
                         let start = std::time::Instant::now();
 
@@ -299,9 +294,8 @@ fn bench_concurrent_producers(c: &mut Criterion) {
                         let (sender, mut receiver) = BackpressureSender::<u64>::new(config);
 
                         // Spawn consumer
-                        let consumer = rt.spawn(async move {
-                            while receiver.recv().await.is_some() {}
-                        });
+                        let consumer =
+                            rt.spawn(async move { while receiver.recv().await.is_some() {} });
 
                         let start = std::time::Instant::now();
 

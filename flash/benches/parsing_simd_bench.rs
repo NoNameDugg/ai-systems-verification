@@ -223,17 +223,13 @@ fn bench_payload_size_scaling(c: &mut Criterion) {
 
         group.throughput(Throughput::Bytes(payload.len() as u64));
 
-        group.bench_with_input(
-            BenchmarkId::new("simd", num_levels),
-            &payload,
-            |b, data| {
-                b.iter(|| {
-                    let mut d = data.clone();
-                    let result = parse_oanda_price_simd(black_box(&mut d));
-                    black_box(result)
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("simd", num_levels), &payload, |b, data| {
+            b.iter(|| {
+                let mut d = data.clone();
+                let result = parse_oanda_price_simd(black_box(&mut d));
+                black_box(result)
+            });
+        });
 
         group.bench_with_input(
             BenchmarkId::new("serde", num_levels),

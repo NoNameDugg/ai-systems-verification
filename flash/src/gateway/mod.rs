@@ -229,10 +229,7 @@ impl OrderBookSnapshot {
     #[must_use]
     pub fn from_book_snapshot(snapshot: &BookSnapshot) -> Self {
         // Symbol needs to be constructed (owned)
-        let symbol = format!(
-            "{}_{}",
-            snapshot.instrument.base, snapshot.instrument.quote
-        );
+        let symbol = format!("{}_{}", snapshot.instrument.base, snapshot.instrument.quote);
 
         // Exchange uses static string from as_str() - zero-copy
         let exchange = snapshot.instrument.exchange.as_str();
@@ -574,7 +571,7 @@ mod tests {
             "test",
             0,
             vec![
-                OrderBookLevel::new(99.0, 10.0),  // Lower price first (wrong)
+                OrderBookLevel::new(99.0, 10.0), // Lower price first (wrong)
                 OrderBookLevel::new(100.0, 5.0), // Higher price second (wrong)
             ],
             vec![],

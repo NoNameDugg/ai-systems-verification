@@ -16,9 +16,11 @@
 //! ```
 
 use astra_flash::book::{BookSnapshot, OrderBook};
+use astra_flash::core::metrics::{FLASH_BACKPRESSURE_STATUS, FLASH_MESSAGES_DROPPED_TOTAL};
 use astra_flash::prelude::*;
 use astra_flash::publisher::{DualPublisher, DualPublisherConfig, PoolConfig, RedisPool};
 use futures_util::StreamExt;
+use metrics::{counter, gauge};
 use parking_lot::RwLock;
 use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::Decimal;
@@ -26,8 +28,6 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
-use astra_flash::core::metrics::{FLASH_BACKPRESSURE_STATUS, FLASH_MESSAGES_DROPPED_TOTAL};
-use metrics::{counter, gauge};
 use tokio::sync::mpsc;
 use tracing::{debug, error, info, warn, Level};
 use tracing_subscriber::FmtSubscriber;
@@ -130,7 +130,10 @@ async fn main() -> Result<()> {
 
     // Create DualPublisher
     let publisher_config = DualPublisherConfig::default();
-    let publisher = Arc::new(DualPublisher::new(Arc::clone(&redis_pool), publisher_config));
+    let publisher = Arc::new(DualPublisher::new(
+        Arc::clone(&redis_pool),
+        publisher_config,
+    ));
     info!("DualPublisher initialized");
 
     FlashMetrics::init_prometheus_exporter(9090)?;
@@ -147,13 +150,11 @@ async fn main() -> Result<()> {
     if config.exchanges.oanda.enabled {
         let mut books = order_books.write();
         for instrument_name in &config.exchanges.oanda.instruments {
-            let instrument = Instrument::new(
-                instrument_name,
-                "",
-                Exchange::Oanda,
-                instrument_name,
+            let instrument = Instrument::new(instrument_name, "", Exchange::Oanda, instrument_name);
+            books.insert(
+                instrument_name.clone(),
+                OrderBook::with_instrument(instrument),
             );
-            books.insert(instrument_name.clone(), OrderBook::with_instrument(instrument));
             info!("  Order book created: {}", instrument_name);
         }
     }
@@ -228,10 +229,7 @@ async fn main() -> Result<()> {
 }
 
 /// Run the publisher task that receives snapshots and publishes to Redis.
-async fn run_publisher_task(
-    publisher: Arc<DualPublisher>,
-    mut rx: mpsc::Receiver<BookSnapshot>,
-) {
+async fn run_publisher_task(publisher: Arc<DualPublisher>, mut rx: mpsc::Receiver<BookSnapshot>) {
     info!("Publisher task started");
 
     let mut publish_count: u64 = 0;
@@ -244,8 +242,7 @@ async fn run_publisher_task(
                 if publish_count % 1000 == 0 {
                     debug!(
                         "Published {} snapshots (latency: {}μs)",
-                        publish_count,
-                        result.latency_us
+                        publish_count, result.latency_us
                     );
                 }
             }
@@ -370,12 +367,9 @@ async fn run_oanda_stream(
                                     }
 
                                     // Parse and process the message
-                                    if let Err(e) = process_oanda_message(
-                                        &line,
-                                        &order_books,
-                                        &publish_tx,
-                                    )
-                                    .await
+                                    if let Err(e) =
+                                        process_oanda_message(&line, &order_books, &publish_tx)
+                                            .await
                                     {
                                         debug!("Message processing error: {}", e);
                                     }
@@ -423,8 +417,8 @@ async fn process_oanda_message(
     }
 
     // Parse PRICE message
-    let price: serde_json::Value = serde_json::from_str(json_line)
-        .map_err(|e| anyhow::anyhow!("JSON parse error: {}", e))?;
+    let price: serde_json::Value =
+        serde_json::from_str(json_line).map_err(|e| anyhow::anyhow!("JSON parse error: {}", e))?;
 
     let instrument_str = price
         .get("instrument")
@@ -477,12 +471,7 @@ async fn process_oanda_message(
     }
 
     // Create BookSnapshot for publishing
-    let instrument = Instrument::new(
-        instrument_str,
-        "",
-        Exchange::Oanda,
-        instrument_str,
-    );
+    let instrument = Instrument::new(instrument_str, "", Exchange::Oanda, instrument_str);
 
     let snapshot = BookSnapshot {
         instrument,

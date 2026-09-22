@@ -235,7 +235,10 @@ async fn test_state_lookup_nonexistent() {
     let (connector, _event_rx, _message_rx) = Connector::new(config, metrics);
 
     // Never connected to Deribit
-    assert_eq!(connector.state(Exchange::Deribit), ConnectionState::Disconnected);
+    assert_eq!(
+        connector.state(Exchange::Deribit),
+        ConnectionState::Disconnected
+    );
 }
 
 /// Test 9: is_connected returns true when in Connected state.
@@ -247,7 +250,10 @@ async fn test_is_connected_true_when_connected() {
     let (connector, mut event_rx, _message_rx) = Connector::new(config, metrics);
 
     // Connect
-    connector.connect(Exchange::Deribit, server.url()).await.unwrap();
+    connector
+        .connect(Exchange::Deribit, server.url())
+        .await
+        .unwrap();
 
     // Wait for Connected event
     let event = timeout(Duration::from_secs(5), event_rx.recv())
@@ -295,7 +301,9 @@ async fn test_send_to_disconnected_returns_error() {
     let metrics = test_metrics();
     let (connector, _event_rx, _message_rx) = Connector::new(config, metrics);
 
-    let result = connector.send(Exchange::Deribit, r#"{"test": "message"}"#).await;
+    let result = connector
+        .send(Exchange::Deribit, r#"{"test": "message"}"#)
+        .await;
     assert!(result.is_err());
 
     match result {
@@ -382,7 +390,10 @@ async fn test_disconnect_from_connected() {
     let (connector, mut event_rx, _message_rx) = Connector::new(config, metrics);
 
     // Connect
-    connector.connect(Exchange::Deribit, server.url()).await.unwrap();
+    connector
+        .connect(Exchange::Deribit, server.url())
+        .await
+        .unwrap();
 
     // Wait for Connected
     loop {
@@ -425,7 +436,10 @@ async fn test_send_receive_message() {
     let (connector, mut event_rx, mut message_rx) = Connector::new(config, metrics);
 
     // Connect
-    connector.connect(Exchange::Deribit, server.url()).await.unwrap();
+    connector
+        .connect(Exchange::Deribit, server.url())
+        .await
+        .unwrap();
 
     // Wait for Connected
     loop {
@@ -556,7 +570,10 @@ async fn test_reconnect_after_disconnect() {
     let (connector, mut event_rx, _message_rx) = Connector::new(config, metrics);
 
     // Connect
-    connector.connect(Exchange::Deribit, server.url()).await.unwrap();
+    connector
+        .connect(Exchange::Deribit, server.url())
+        .await
+        .unwrap();
 
     // Wait for Connected
     loop {
@@ -584,7 +601,10 @@ async fn test_reconnect_after_disconnect() {
     }
 
     // Reconnect
-    connector.connect(Exchange::Deribit, server.url()).await.unwrap();
+    connector
+        .connect(Exchange::Deribit, server.url())
+        .await
+        .unwrap();
 
     // Wait for Connected again
     loop {
@@ -611,7 +631,10 @@ async fn test_event_emission_on_connect() {
     let metrics = test_metrics();
     let (connector, mut event_rx, _message_rx) = Connector::new(config, metrics);
 
-    connector.connect(Exchange::Deribit, server.url()).await.unwrap();
+    connector
+        .connect(Exchange::Deribit, server.url())
+        .await
+        .unwrap();
 
     let mut found_connected = false;
     for _ in 0..5 {
@@ -638,7 +661,10 @@ async fn test_event_emission_on_disconnect() {
     let (connector, mut event_rx, _message_rx) = Connector::new(config, metrics);
 
     // Connect
-    connector.connect(Exchange::Deribit, server.url()).await.unwrap();
+    connector
+        .connect(Exchange::Deribit, server.url())
+        .await
+        .unwrap();
 
     // Wait for Connected
     loop {
@@ -665,7 +691,10 @@ async fn test_event_emission_on_disconnect() {
         }
     }
 
-    assert!(found_disconnected, "Expected Disconnected event to be emitted");
+    assert!(
+        found_disconnected,
+        "Expected Disconnected event to be emitted"
+    );
 
     server.shutdown();
 }
@@ -683,7 +712,10 @@ async fn test_message_receive_latency() {
     let (connector, mut event_rx, mut message_rx) = Connector::new(config, metrics);
 
     // Connect
-    connector.connect(Exchange::Deribit, server.url()).await.unwrap();
+    connector
+        .connect(Exchange::Deribit, server.url())
+        .await
+        .unwrap();
 
     // Wait for Connected
     loop {
@@ -763,7 +795,10 @@ async fn test_throughput_single_connection() {
     let (connector, mut event_rx, mut message_rx) = Connector::new(config, metrics);
 
     // Connect
-    connector.connect(Exchange::Deribit, server.url()).await.unwrap();
+    connector
+        .connect(Exchange::Deribit, server.url())
+        .await
+        .unwrap();
 
     // Wait for Connected
     loop {
@@ -781,7 +816,10 @@ async fn test_throughput_single_connection() {
     let start = Instant::now();
 
     for i in 0..msg_count {
-        connector.send(Exchange::Deribit, &format!("msg_{}", i)).await.unwrap();
+        connector
+            .send(Exchange::Deribit, &format!("msg_{}", i))
+            .await
+            .unwrap();
     }
 
     // Receive all echoes
@@ -804,7 +842,12 @@ async fn test_throughput_single_connection() {
     );
 
     // We expect reasonable throughput for localhost
-    assert!(received >= msg_count / 2, "Lost too many messages: {}/{}", received, msg_count);
+    assert!(
+        received >= msg_count / 2,
+        "Lost too many messages: {}/{}",
+        received,
+        msg_count
+    );
 
     connector.disconnect_all().await;
     server.shutdown();
@@ -821,7 +864,9 @@ async fn test_connect_invalid_url() {
     let metrics = test_metrics();
     let (connector, _event_rx, _message_rx) = Connector::new(config, metrics);
 
-    let result = connector.connect(Exchange::Deribit, "not_a_valid_url").await;
+    let result = connector
+        .connect(Exchange::Deribit, "not_a_valid_url")
+        .await;
     assert!(result.is_err());
 }
 
@@ -852,7 +897,10 @@ async fn test_server_close_connection() {
     let (connector, mut event_rx, _message_rx) = Connector::new(config, metrics);
 
     // Connect
-    connector.connect(Exchange::Deribit, server.url()).await.unwrap();
+    connector
+        .connect(Exchange::Deribit, server.url())
+        .await
+        .unwrap();
 
     // Wait for Connected
     loop {
@@ -893,7 +941,10 @@ async fn test_send_to_closing_connection() {
     let (connector, mut event_rx, _message_rx) = Connector::new(config, metrics);
 
     // Connect
-    connector.connect(Exchange::Deribit, server.url()).await.unwrap();
+    connector
+        .connect(Exchange::Deribit, server.url())
+        .await
+        .unwrap();
 
     // Wait for Connected
     loop {
@@ -1112,16 +1163,27 @@ async fn test_read_timeout_triggers_disconnect() {
 
     for _ in 0..5 {
         if let Ok(Some(event)) = timeout(Duration::from_secs(2), event_rx.recv()).await {
-            if let ConnectorEvent::Disconnected { reason, will_reconnect, .. } = event {
+            if let ConnectorEvent::Disconnected {
+                reason,
+                will_reconnect,
+                ..
+            } = event
+            {
                 received_disconnect = true;
                 disconnect_reason = reason;
-                assert!(will_reconnect, "Should indicate will_reconnect=true for read timeout");
+                assert!(
+                    will_reconnect,
+                    "Should indicate will_reconnect=true for read timeout"
+                );
                 break;
             }
         }
     }
 
-    assert!(received_disconnect, "Should receive Disconnected event due to read timeout");
+    assert!(
+        received_disconnect,
+        "Should receive Disconnected event due to read timeout"
+    );
     assert!(
         disconnect_reason.contains("read timeout"),
         "Disconnect reason should mention read timeout, got: {}",
@@ -1135,7 +1197,10 @@ async fn test_read_timeout_triggers_disconnect() {
 #[test]
 fn test_read_timeout_default_value() {
     let config = WebSocketConfig::default();
-    assert_eq!(config.read_timeout_ms, 5000, "Default read timeout should be 5000ms");
+    assert_eq!(
+        config.read_timeout_ms, 5000,
+        "Default read timeout should be 5000ms"
+    );
 }
 
 /// Test 39: Read timeout duration helper works correctly.

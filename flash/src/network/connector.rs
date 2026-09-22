@@ -93,8 +93,7 @@ const OUTGOING_CHANNEL_SIZE: usize = 1000;
 ///      │                           │                      │
 ///      └───────────────────────────┴───────────────< Disconnecting
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum ConnectionState {
     /// Not connected to the exchange.
     #[default]
@@ -125,7 +124,6 @@ impl std::fmt::Display for ConnectionState {
         }
     }
 }
-
 
 // =============================================================================
 // CONNECTOR EVENT
@@ -463,7 +461,7 @@ impl Connector {
                     ConnectionState::Disconnected,
                 );
                 return Err(FlashError::ConnectionFailed(e.to_string()));
-            },
+            }
             Err(_) => {
                 self.emit_connection_failed(exchange, "Connection timeout", 1);
                 self.emit_state_change(
@@ -474,7 +472,7 @@ impl Connector {
                 return Err(FlashError::ConnectionTimeout {
                     timeout_ms: self.config.connect_timeout_ms,
                 });
-            },
+            }
         };
 
         // Create channels for this connection

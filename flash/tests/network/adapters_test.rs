@@ -480,7 +480,7 @@ fn test_binance_parse_trade() {
     {
         assert!((price - 50000.25).abs() < f64::EPSILON);
         assert_eq!(*quantity, Decimal::new(5, 1)); // 0.5
-        // m=true means the buyer is the market maker, so taker is seller (Ask)
+                                                   // m=true means the buyer is the market maker, so taker is seller (Ask)
         assert_eq!(*side, Side::Ask);
         assert!(trade_id.is_some());
     } else {

@@ -226,8 +226,7 @@ pub struct PoolStats {
 // =============================================================================
 
 /// Health status of the connection pool.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PoolHealthStatus {
     /// Pool is healthy, all connections working.
     Healthy,
@@ -239,7 +238,6 @@ pub enum PoolHealthStatus {
     #[default]
     Unknown,
 }
-
 
 /// Health information for the connection pool.
 #[derive(Debug, Clone)]
@@ -734,7 +732,9 @@ impl RedisPool {
     ///
     /// Returns `PoolError::ConnectionTimeout` if timeout expires.
     pub async fn get_timeout(&self, timeout: Duration) -> PoolResult<PooledConnection> {
-        if let Ok(result) = tokio::time::timeout(timeout, self.get()).await { result } else {
+        if let Ok(result) = tokio::time::timeout(timeout, self.get()).await {
+            result
+        } else {
             let mut stats = self.stats.write();
             stats.connection_timeouts += 1;
             Err(PoolError::ConnectionTimeout {
@@ -795,13 +795,12 @@ impl RedisPool {
                 health.last_error = None;
 
                 // Determine health status: Healthy if 3+ successes or no failures
-                health.status = if health.consecutive_successes >= 3
-                    || health.consecutive_failures == 0
-                {
-                    PoolHealthStatus::Healthy
-                } else {
-                    PoolHealthStatus::Degraded
-                };
+                health.status =
+                    if health.consecutive_successes >= 3 || health.consecutive_failures == 0 {
+                        PoolHealthStatus::Healthy
+                    } else {
+                        PoolHealthStatus::Degraded
+                    };
 
                 // Update last health check timestamp
                 let mut stats = self.stats.write();
@@ -813,7 +812,7 @@ impl RedisPool {
                 );
 
                 Ok(health.clone())
-            },
+            }
             Err(e) => {
                 health.consecutive_failures += 1;
                 health.consecutive_successes = 0;
@@ -827,7 +826,7 @@ impl RedisPool {
                 };
 
                 Err(PoolError::HealthCheckFailed(e.to_string()))
-            },
+            }
         }
     }
 

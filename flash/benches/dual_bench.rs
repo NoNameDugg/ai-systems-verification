@@ -131,16 +131,12 @@ fn bench_book_to_gateway(c: &mut Criterion) {
     for depth in [5, 10, 25, 50].iter() {
         let book = test_book_snapshot(*depth);
 
-        group.bench_with_input(
-            BenchmarkId::from_parameter(depth),
-            &book,
-            |b, book| {
-                b.iter(|| {
-                    let gateway = GatewaySnapshot::from_book_snapshot(book);
-                    black_box(gateway)
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::from_parameter(depth), &book, |b, book| {
+            b.iter(|| {
+                let gateway = GatewaySnapshot::from_book_snapshot(book);
+                black_box(gateway)
+            });
+        });
     }
 
     group.finish();
@@ -154,16 +150,12 @@ fn bench_book_to_signal(c: &mut Criterion) {
     for depth in [5, 10, 25, 50].iter() {
         let book = test_book_snapshot(*depth);
 
-        group.bench_with_input(
-            BenchmarkId::from_parameter(depth),
-            &book,
-            |b, book| {
-                b.iter(|| {
-                    let signal = AlphaSignal::from_book_snapshot(book, 0.8);
-                    black_box(signal)
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::from_parameter(depth), &book, |b, book| {
+            b.iter(|| {
+                let signal = AlphaSignal::from_book_snapshot(book, 0.8);
+                black_box(signal)
+            });
+        });
     }
 
     group.finish();
@@ -206,16 +198,12 @@ fn bench_signal_to_json(c: &mut Criterion) {
         let book = test_book_snapshot(*depth);
         let signal = AlphaSignal::from_book_snapshot(&book, 0.8);
 
-        group.bench_with_input(
-            BenchmarkId::from_parameter(depth),
-            &signal,
-            |b, signal| {
-                b.iter(|| {
-                    let json = signal.to_json().expect("serialize");
-                    black_box(json)
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::from_parameter(depth), &signal, |b, signal| {
+            b.iter(|| {
+                let json = signal.to_json().expect("serialize");
+                black_box(json)
+            });
+        });
     }
 
     group.finish();
@@ -234,27 +222,23 @@ fn bench_dual_conversion_pipeline(c: &mut Criterion) {
         let book = test_book_snapshot(*depth);
         let config = DualPublisherConfig::default();
 
-        group.bench_with_input(
-            BenchmarkId::from_parameter(depth),
-            &book,
-            |b, book| {
-                b.iter(|| {
-                    // Generate keys
-                    let orderbook_key = DualPublisher::orderbook_key(&book.instrument, &config);
-                    let signal_key = DualPublisher::signal_key(&book.instrument, &config);
+        group.bench_with_input(BenchmarkId::from_parameter(depth), &book, |b, book| {
+            b.iter(|| {
+                // Generate keys
+                let orderbook_key = DualPublisher::orderbook_key(&book.instrument, &config);
+                let signal_key = DualPublisher::signal_key(&book.instrument, &config);
 
-                    // Convert to Gateway format
-                    let gateway = GatewaySnapshot::from_book_snapshot(book);
-                    let gateway_json = gateway.to_json().expect("serialize");
+                // Convert to Gateway format
+                let gateway = GatewaySnapshot::from_book_snapshot(book);
+                let gateway_json = gateway.to_json().expect("serialize");
 
-                    // Convert to AlphaSignal format
-                    let signal = AlphaSignal::from_book_snapshot(book, 0.8);
-                    let signal_json = signal.to_json().expect("serialize");
+                // Convert to AlphaSignal format
+                let signal = AlphaSignal::from_book_snapshot(book, 0.8);
+                let signal_json = signal.to_json().expect("serialize");
 
-                    black_box((orderbook_key, signal_key, gateway_json, signal_json))
-                });
-            },
-        );
+                black_box((orderbook_key, signal_key, gateway_json, signal_json))
+            });
+        });
     }
 
     group.finish();

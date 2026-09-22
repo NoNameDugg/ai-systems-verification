@@ -7,7 +7,9 @@
 // This is necessary for testing memory allocation patterns in zero-copy optimizations.
 #![allow(unsafe_code)]
 
-use astra_flash::core::types::{Exchange, Instrument, MarketData, MarketEvent, MarketEventType, PriceLevel, Side};
+use astra_flash::core::types::{
+    Exchange, Instrument, MarketData, MarketEvent, MarketEventType, PriceLevel, Side,
+};
 use rust_decimal_macros::dec;
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -54,13 +56,15 @@ impl CountingAllocator {
 unsafe impl GlobalAlloc for CountingAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         self.allocations.fetch_add(1, Ordering::SeqCst);
-        self.bytes_allocated.fetch_add(layout.size(), Ordering::SeqCst);
+        self.bytes_allocated
+            .fetch_add(layout.size(), Ordering::SeqCst);
         System.alloc(layout)
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         self.deallocations.fetch_add(1, Ordering::SeqCst);
-        self.bytes_deallocated.fetch_add(layout.size(), Ordering::SeqCst);
+        self.bytes_deallocated
+            .fetch_add(layout.size(), Ordering::SeqCst);
         System.dealloc(ptr, layout)
     }
 }
@@ -193,8 +197,12 @@ fn test_string_field_sizes() {
 fn test_market_event_clone_cost() {
     // Measure full MarketEvent clone cost (includes Instrument clone)
     let instrument = create_instrument();
-    let bids: Vec<PriceLevel> = (0..50).map(|i| create_price_level(50000.0 - i as f64 * 10.0)).collect();
-    let asks: Vec<PriceLevel> = (0..50).map(|i| create_price_level(50010.0 + i as f64 * 10.0)).collect();
+    let bids: Vec<PriceLevel> = (0..50)
+        .map(|i| create_price_level(50000.0 - i as f64 * 10.0))
+        .collect();
+    let asks: Vec<PriceLevel> = (0..50)
+        .map(|i| create_price_level(50010.0 + i as f64 * 10.0))
+        .collect();
 
     let event = MarketEvent {
         event_type: MarketEventType::Snapshot,
@@ -290,8 +298,14 @@ fn test_instrument_new_allocations() {
     println!("\n{}", "=".repeat(70));
     println!("INSTRUMENT ALLOCATION PATTERNS");
     println!("{}", "=".repeat(70));
-    println!("Instrument with literals: base='{}', quote='{}'", inst1.base, inst1.quote);
-    println!("Instrument with owned:    base='{}', quote='{}'", inst2.base, inst2.quote);
+    println!(
+        "Instrument with literals: base='{}', quote='{}'",
+        inst1.base, inst1.quote
+    );
+    println!(
+        "Instrument with owned:    base='{}', quote='{}'",
+        inst2.base, inst2.quote
+    );
 }
 
 #[test]
@@ -364,7 +378,11 @@ fn test_instrument_memory_size() {
     // Instrument should be reasonably sized
     // With 3 Strings (24 bytes each on 64-bit) + Exchange (1 byte) + padding
     // Expected: ~80-96 bytes (without optimization)
-    assert!(instrument_size <= 128, "Instrument too large: {} bytes", instrument_size);
+    assert!(
+        instrument_size <= 128,
+        "Instrument too large: {} bytes",
+        instrument_size
+    );
 }
 
 #[test]
@@ -425,7 +443,11 @@ fn test_instrument_creation_throughput() {
     println!("Time per op: {:.1} ns", ns_per_op);
 
     // Target: >1M ops/sec (< 1000 ns per op)
-    assert!(ns_per_op < 10000.0, "Instrument creation too slow: {:.1} ns", ns_per_op);
+    assert!(
+        ns_per_op < 10000.0,
+        "Instrument creation too slow: {:.1} ns",
+        ns_per_op
+    );
 }
 
 #[test]
@@ -451,7 +473,11 @@ fn test_instrument_clone_throughput() {
     println!("Time per op: {:.1} ns", ns_per_op);
 
     // Target: >1M ops/sec (< 1000 ns per clone)
-    assert!(ns_per_op < 10000.0, "Instrument clone too slow: {:.1} ns", ns_per_op);
+    assert!(
+        ns_per_op < 10000.0,
+        "Instrument clone too slow: {:.1} ns",
+        ns_per_op
+    );
 }
 
 // =============================================================================
@@ -466,9 +492,18 @@ fn test_zero_copy_summary() {
     println!("{}", "=".repeat(70));
     println!();
     println!("KEY METRICS:");
-    println!("  - Instrument size: {} bytes", std::mem::size_of::<Instrument>());
-    println!("  - String size:     {} bytes", std::mem::size_of::<String>());
-    println!("  - Exchange size:   {} bytes", std::mem::size_of::<Exchange>());
+    println!(
+        "  - Instrument size: {} bytes",
+        std::mem::size_of::<Instrument>()
+    );
+    println!(
+        "  - String size:     {} bytes",
+        std::mem::size_of::<String>()
+    );
+    println!(
+        "  - Exchange size:   {} bytes",
+        std::mem::size_of::<Exchange>()
+    );
     println!();
     println!("OPTIMIZATION TARGETS:");
     println!("  1. Use Cow<'static, str> for Instrument.base/quote/raw_symbol");

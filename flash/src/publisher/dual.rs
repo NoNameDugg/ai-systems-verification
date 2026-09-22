@@ -424,9 +424,7 @@ impl DualPublisher {
         } else {
             format!(
                 "{}{}_{}",
-                config.orderbook_key_prefix,
-                instrument.base,
-                instrument.quote
+                config.orderbook_key_prefix, instrument.base, instrument.quote
             )
         }
     }

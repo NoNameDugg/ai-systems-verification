@@ -158,7 +158,11 @@ fn test_exchange_serde_roundtrip() {
             serde_json::from_str(&json).expect("Failed to deserialize Exchange");
 
         // ASSERT
-        assert_eq!(exchange, deserialized, "Round-trip failed for {:?}", exchange);
+        assert_eq!(
+            exchange, deserialized,
+            "Round-trip failed for {:?}",
+            exchange
+        );
     }
 }
 
@@ -505,8 +509,14 @@ fn test_exchange_hash_key() {
     map.insert(Exchange::Oanda, "oanda_url".to_string());
 
     // ASSERT
-    assert_eq!(map.get(&Exchange::Deribit), Some(&"deribit_url".to_string()));
-    assert_eq!(map.get(&Exchange::Binance), Some(&"binance_url".to_string()));
+    assert_eq!(
+        map.get(&Exchange::Deribit),
+        Some(&"deribit_url".to_string())
+    );
+    assert_eq!(
+        map.get(&Exchange::Binance),
+        Some(&"binance_url".to_string())
+    );
     assert_eq!(map.get(&Exchange::Oanda), Some(&"oanda_url".to_string()));
 }
 

@@ -219,7 +219,7 @@ impl TopicPattern {
             (Some(PatternSegment::MultiWildcard), None) => {
                 // # can match zero segments
                 self.match_segments(&pattern[1..], topic)
-            },
+            }
             (Some(_), None) => false,
 
             // Multi-wildcard - try zero or more matches
@@ -228,17 +228,17 @@ impl TopicPattern {
                 self.match_segments(&pattern[1..], topic)
                     // Or try matching one segment (consume one from topic)
                     || self.match_segments(pattern, &topic[1..])
-            },
+            }
 
             // Single wildcard - match any single segment
             (Some(PatternSegment::SingleWildcard), Some(_)) => {
                 self.match_segments(&pattern[1..], &topic[1..])
-            },
+            }
 
             // Exact match
             (Some(PatternSegment::Exact(p)), Some(t)) => {
                 p.eq_ignore_ascii_case(t) && self.match_segments(&pattern[1..], &topic[1..])
-            },
+            }
         }
     }
 
@@ -352,7 +352,7 @@ impl TopicTemplate {
                         current.clear();
                     }
                     in_placeholder = true;
-                },
+                }
                 '}' => {
                     if !in_placeholder {
                         return Err(RoutingError::InvalidTemplate {
@@ -371,15 +371,15 @@ impl TopicTemplate {
                                 template: template.to_string(),
                                 reason: format!("Unknown placeholder: {{{other}}}"),
                             })
-                        },
+                        }
                     };
                     segments.push(segment);
                     current.clear();
                     in_placeholder = false;
-                },
+                }
                 _ => {
                     current.push(c);
-                },
+                }
             }
         }
 
@@ -440,19 +440,19 @@ impl TopicTemplate {
                 TemplateSegment::Literal(s) => result.push_str(s),
                 TemplateSegment::Exchange => {
                     result.push_str(event.instrument.exchange.as_str());
-                },
+                }
                 TemplateSegment::Base => {
                     result.push_str(&event.instrument.base.to_lowercase());
-                },
+                }
                 TemplateSegment::Quote => {
                     result.push_str(&event.instrument.quote.to_lowercase());
-                },
+                }
                 TemplateSegment::Type => {
                     result.push_str(topic_type.as_str());
-                },
+                }
                 TemplateSegment::Prefix => {
                     result.push_str(prefix);
-                },
+                }
             }
         }
 
@@ -1195,7 +1195,7 @@ impl TopicRouter {
                             result.topics.push(topic);
                         }
                     }
-                },
+                }
                 RoutingAction::RouteAndStop => {
                     // Generate topics and stop
                     for template in &rule.targets {
@@ -1209,12 +1209,12 @@ impl TopicRouter {
                         }
                     }
                     break;
-                },
+                }
                 RoutingAction::Drop => {
                     result.dropped = true;
                     result.topics.clear();
                     break;
-                },
+                }
             }
 
             // Check topic limit

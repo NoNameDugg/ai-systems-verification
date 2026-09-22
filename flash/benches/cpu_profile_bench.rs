@@ -36,8 +36,8 @@ use astra_flash::book::{BookSnapshot, OrderBook, OrderBookConfig, ThreadSafeOrde
 use astra_flash::core::types::{Exchange, Instrument, PriceLevel, Side};
 use astra_flash::network::adapters::{DeribitAdapter, ExchangeAdapter, OandaAdapter};
 use criterion::{
-    black_box, criterion_group, criterion_main, measurement::WallTime, BenchmarkGroup,
-    BenchmarkId, Criterion, Throughput,
+    black_box, criterion_group, criterion_main, measurement::WallTime, BenchmarkGroup, BenchmarkId,
+    Criterion, Throughput,
 };
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
@@ -169,7 +169,8 @@ fn profile_json_parsing(c: &mut Criterion) {
 
     group.bench_function("serde_json_raw_medium", |b| {
         b.iter(|| {
-            let v: serde_json::Value = serde_json::from_str(black_box(DERIBIT_SNAPSHOT_10)).unwrap();
+            let v: serde_json::Value =
+                serde_json::from_str(black_box(DERIBIT_SNAPSHOT_10)).unwrap();
             black_box(v)
         });
     });

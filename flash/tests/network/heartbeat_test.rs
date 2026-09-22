@@ -19,7 +19,7 @@ use astra_flash::core::metrics::FlashMetrics;
 use astra_flash::core::types::Exchange;
 use astra_flash::network::connector::Connector;
 use astra_flash::network::heartbeat::{
-    HeartbeatConfig, HeartbeatEvent, HeartbeatManager, HealthStatus, HealthSummary,
+    HealthStatus, HealthSummary, HeartbeatConfig, HeartbeatEvent, HeartbeatManager,
 };
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -33,13 +33,13 @@ use tokio::time::timeout;
 /// Create a default HeartbeatConfig for testing.
 fn test_heartbeat_config() -> HeartbeatConfig {
     HeartbeatConfig {
-        ping_interval_ms: 100,         // Short for tests
-        pong_timeout_ms: 50,           // Short for tests
+        ping_interval_ms: 100, // Short for tests
+        pong_timeout_ms: 50,   // Short for tests
         jitter_percent: 0.1,
         degraded_threshold: 1,
         unhealthy_threshold: 3,
         auto_disconnect_unhealthy: false,
-        stale_connection_ms: 500,      // Short for tests
+        stale_connection_ms: 500, // Short for tests
     }
 }
 
@@ -63,18 +63,19 @@ fn test_metrics() -> FlashMetrics {
 }
 
 /// Create a mock connector and heartbeat manager for testing.
-fn create_test_heartbeat() -> (HeartbeatManager, mpsc::Receiver<HeartbeatEvent>, Arc<Connector>) {
+fn create_test_heartbeat() -> (
+    HeartbeatManager,
+    mpsc::Receiver<HeartbeatEvent>,
+    Arc<Connector>,
+) {
     let ws_config = test_ws_config();
     let metrics = test_metrics();
     let (connector, _event_rx, _message_rx) = Connector::new(ws_config, metrics.clone());
     let connector = Arc::new(connector);
 
     let heartbeat_config = test_heartbeat_config();
-    let (heartbeat, event_rx) = HeartbeatManager::new(
-        heartbeat_config,
-        Arc::clone(&connector),
-        metrics,
-    );
+    let (heartbeat, event_rx) =
+        HeartbeatManager::new(heartbeat_config, Arc::clone(&connector), metrics);
 
     (heartbeat, event_rx, connector)
 }
@@ -214,13 +215,19 @@ async fn test_health_transition_healthy_to_degraded() {
 
     // Record pong to make healthy first
     heartbeat.record_pong(Exchange::Deribit);
-    assert_eq!(heartbeat.health_status(Exchange::Deribit), HealthStatus::Healthy);
+    assert_eq!(
+        heartbeat.health_status(Exchange::Deribit),
+        HealthStatus::Healthy
+    );
 
     // Simulate missed pong by calling internal method or waiting
     heartbeat.record_missed_pong(Exchange::Deribit);
 
     // Should transition to Degraded
-    assert_eq!(heartbeat.health_status(Exchange::Deribit), HealthStatus::Degraded);
+    assert_eq!(
+        heartbeat.health_status(Exchange::Deribit),
+        HealthStatus::Degraded
+    );
 }
 
 /// Test 11: Health transitions from Degraded to Unhealthy.
@@ -241,11 +248,17 @@ async fn test_health_transition_degraded_to_unhealthy() {
 
     // Miss 1 pong -> Degraded
     heartbeat.record_missed_pong(Exchange::Deribit);
-    assert_eq!(heartbeat.health_status(Exchange::Deribit), HealthStatus::Degraded);
+    assert_eq!(
+        heartbeat.health_status(Exchange::Deribit),
+        HealthStatus::Degraded
+    );
 
     // Miss 2nd pong -> Unhealthy
     heartbeat.record_missed_pong(Exchange::Deribit);
-    assert_eq!(heartbeat.health_status(Exchange::Deribit), HealthStatus::Unhealthy);
+    assert_eq!(
+        heartbeat.health_status(Exchange::Deribit),
+        HealthStatus::Unhealthy
+    );
 }
 
 /// Test 12: Health recovers from Unhealthy to Healthy on pong.
@@ -266,11 +279,17 @@ async fn test_health_transition_unhealthy_to_healthy() {
     // Make unhealthy
     heartbeat.record_missed_pong(Exchange::Deribit);
     heartbeat.record_missed_pong(Exchange::Deribit);
-    assert_eq!(heartbeat.health_status(Exchange::Deribit), HealthStatus::Unhealthy);
+    assert_eq!(
+        heartbeat.health_status(Exchange::Deribit),
+        HealthStatus::Unhealthy
+    );
 
     // Record pong -> should recover to Healthy
     heartbeat.record_pong(Exchange::Deribit);
-    assert_eq!(heartbeat.health_status(Exchange::Deribit), HealthStatus::Healthy);
+    assert_eq!(
+        heartbeat.health_status(Exchange::Deribit),
+        HealthStatus::Healthy
+    );
 }
 
 /// Test 13: Jitter calculation is within bounds.
@@ -435,7 +454,9 @@ async fn test_start_monitoring_new_exchange() {
         .ok()
         .flatten();
 
-    assert!(matches!(event, Some(HeartbeatEvent::MonitoringStarted { exchange }) if exchange == Exchange::Deribit));
+    assert!(
+        matches!(event, Some(HeartbeatEvent::MonitoringStarted { exchange }) if exchange == Exchange::Deribit)
+    );
 
     // Health status should exist (Unknown initially)
     let status = heartbeat.health_status(Exchange::Deribit);
@@ -461,7 +482,9 @@ async fn test_stop_monitoring_running() {
         .ok()
         .flatten();
 
-    assert!(matches!(event, Some(HeartbeatEvent::MonitoringStopped { exchange, .. }) if exchange == Exchange::Deribit));
+    assert!(
+        matches!(event, Some(HeartbeatEvent::MonitoringStopped { exchange, .. }) if exchange == Exchange::Deribit)
+    );
 }
 
 /// Test 21: Pings are sent at configured interval.
@@ -511,13 +534,19 @@ async fn test_pong_received_updates_health() {
     heartbeat.start_monitoring(Exchange::Deribit);
 
     // Initially Unknown
-    assert_eq!(heartbeat.health_status(Exchange::Deribit), HealthStatus::Unknown);
+    assert_eq!(
+        heartbeat.health_status(Exchange::Deribit),
+        HealthStatus::Unknown
+    );
 
     // Record pong
     heartbeat.record_pong(Exchange::Deribit);
 
     // Now Healthy
-    assert_eq!(heartbeat.health_status(Exchange::Deribit), HealthStatus::Healthy);
+    assert_eq!(
+        heartbeat.health_status(Exchange::Deribit),
+        HealthStatus::Healthy
+    );
 }
 
 /// Test 23: Pong timeout triggers event.
@@ -574,7 +603,12 @@ async fn test_health_change_event_emission() {
         .ok()
         .flatten();
 
-    if let Some(HeartbeatEvent::HealthChanged { old_status, new_status, .. }) = event {
+    if let Some(HeartbeatEvent::HealthChanged {
+        old_status,
+        new_status,
+        ..
+    }) = event
+    {
         assert_eq!(old_status, HealthStatus::Unknown);
         assert_eq!(new_status, HealthStatus::Healthy);
     }
@@ -632,7 +666,10 @@ async fn test_auto_disconnect_unhealthy() {
     // If auto-disconnect is working, connector.is_connected should be false
     // (This depends on connector actually being connected, which it's not in this test)
     // Just verify status is Unhealthy
-    assert_eq!(heartbeat.health_status(Exchange::Deribit), HealthStatus::Unhealthy);
+    assert_eq!(
+        heartbeat.health_status(Exchange::Deribit),
+        HealthStatus::Unhealthy
+    );
 }
 
 /// Test 27: Force ping sends immediately.
@@ -721,7 +758,10 @@ async fn test_concurrent_pong_recording() {
     }
 
     // Should be healthy
-    assert_eq!(heartbeat.health_status(Exchange::Deribit), HealthStatus::Healthy);
+    assert_eq!(
+        heartbeat.health_status(Exchange::Deribit),
+        HealthStatus::Healthy
+    );
 
     // Summary should show pongs received
     if let Some(summary) = heartbeat.health_summary(Exchange::Deribit) {
@@ -798,7 +838,10 @@ async fn test_multiple_exchanges_independent() {
     heartbeat.record_missed_pong(Exchange::Binance);
 
     // Deribit should be healthy
-    assert_eq!(heartbeat.health_status(Exchange::Deribit), HealthStatus::Healthy);
+    assert_eq!(
+        heartbeat.health_status(Exchange::Deribit),
+        HealthStatus::Healthy
+    );
 
     // Binance should be degraded/unhealthy (depending on thresholds)
     let binance_status = heartbeat.health_status(Exchange::Binance);

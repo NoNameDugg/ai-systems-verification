@@ -76,7 +76,10 @@ fn shadow_config() -> DualPublisherConfig {
 fn test_production_config_shadow_mode_disabled() {
     let config = DualPublisherConfig::default();
 
-    assert!(!config.shadow_mode_enabled, "Shadow mode should be disabled by default");
+    assert!(
+        !config.shadow_mode_enabled,
+        "Shadow mode should be disabled by default"
+    );
 }
 
 /// Test production config generates correct orderbook key.
@@ -107,7 +110,10 @@ fn test_production_config_default_format() {
     let config = DualPublisherConfig::default();
 
     assert!(
-        matches!(config.format, astra_flash::publisher::stream::SerializationFormat::Json),
+        matches!(
+            config.format,
+            astra_flash::publisher::stream::SerializationFormat::Json
+        ),
         "Default format should be JSON for compatibility"
     );
 }
@@ -146,7 +152,10 @@ fn test_orderbook_key_no_namespace_production() {
 
     let key = DualPublisher::orderbook_key(&instrument, &config);
 
-    assert!(!key.contains(":rust:"), "Production key should not contain namespace");
+    assert!(
+        !key.contains(":rust:"),
+        "Production key should not contain namespace"
+    );
     assert_eq!(key, "market:orderbook:EUR_USD");
 }
 
@@ -158,7 +167,10 @@ fn test_signal_key_no_namespace_production() {
 
     let key = DualPublisher::signal_key(&instrument, &config);
 
-    assert!(!key.contains(":rust:"), "Production key should not contain namespace");
+    assert!(
+        !key.contains(":rust:"),
+        "Production key should not contain namespace"
+    );
     assert_eq!(key, "astra:signals:flash:oanda:EUR_USD");
 }
 
@@ -168,14 +180,28 @@ fn test_multiple_instruments_production_keys() {
     let config = production_config();
 
     let instruments = vec![
-        (Instrument::new("EUR", "USD", Exchange::Oanda, "EUR_USD"), "market:orderbook:EUR_USD"),
-        (Instrument::new("GBP", "USD", Exchange::Oanda, "GBP_USD"), "market:orderbook:GBP_USD"),
-        (Instrument::new("USD", "JPY", Exchange::Oanda, "USD_JPY"), "market:orderbook:USD_JPY"),
+        (
+            Instrument::new("EUR", "USD", Exchange::Oanda, "EUR_USD"),
+            "market:orderbook:EUR_USD",
+        ),
+        (
+            Instrument::new("GBP", "USD", Exchange::Oanda, "GBP_USD"),
+            "market:orderbook:GBP_USD",
+        ),
+        (
+            Instrument::new("USD", "JPY", Exchange::Oanda, "USD_JPY"),
+            "market:orderbook:USD_JPY",
+        ),
     ];
 
     for (instrument, expected_key) in instruments {
         let key = DualPublisher::orderbook_key(&instrument, &config);
-        assert_eq!(key, expected_key, "Key mismatch for {}", instrument.symbol());
+        assert_eq!(
+            key,
+            expected_key,
+            "Key mismatch for {}",
+            instrument.symbol()
+        );
     }
 }
 
@@ -333,7 +359,7 @@ fn test_namespace_preserved_but_unused_production() {
     let instrument = test_instrument();
 
     let config = DualPublisherConfig {
-        shadow_mode_enabled: false, // Production
+        shadow_mode_enabled: false,                            // Production
         shadow_mode_namespace: "custom-namespace".to_string(), // Preserved
         ..DualPublisherConfig::default()
     };
@@ -422,7 +448,11 @@ fn test_multiple_rollback_cycles() {
         if i % 2 == 0 {
             assert!(key.contains(":rust:"), "Cycle {} should be shadow mode", i);
         } else {
-            assert!(!key.contains(":rust:"), "Cycle {} should be production mode", i);
+            assert!(
+                !key.contains(":rust:"),
+                "Cycle {} should be production mode",
+                i
+            );
         }
     }
 }
@@ -474,7 +504,8 @@ fn test_standard_fx_pairs_valid_keys() {
     ];
 
     for (base, quote) in pairs {
-        let instrument = Instrument::new(base, quote, Exchange::Oanda, &format!("{}_{}", base, quote));
+        let instrument =
+            Instrument::new(base, quote, Exchange::Oanda, &format!("{}_{}", base, quote));
 
         let orderbook_key = DualPublisher::orderbook_key(&instrument, &config);
         let signal_key = DualPublisher::signal_key(&instrument, &config);

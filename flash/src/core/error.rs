@@ -520,10 +520,7 @@ impl FlashError {
     /// ```
     #[must_use]
     pub const fn requires_snapshot(&self) -> bool {
-        matches!(
-            self,
-            Self::SequenceGap { .. } | Self::InvalidBookState(_)
-        )
+        matches!(self, Self::SequenceGap { .. } | Self::InvalidBookState(_))
     }
 
     /// Returns a unique error code for logging and monitoring.
@@ -630,9 +627,9 @@ impl FlashError {
             | Self::InvalidQuantity { .. } => ErrorSeverity::Critical,
 
             // Fatal - cannot continue
-            Self::IoError(_)
-            | Self::ChannelClosed { .. }
-            | Self::InternalError(_) => ErrorSeverity::Fatal,
+            Self::IoError(_) | Self::ChannelClosed { .. } | Self::InternalError(_) => {
+                ErrorSeverity::Fatal
+            }
         }
     }
 }

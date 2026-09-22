@@ -6,15 +6,13 @@
 //! Run with: cargo bench --bench zero_copy_bench
 //! Compare with: cargo bench --bench zero_copy_bench -- --save-baseline before_optimization
 
-use criterion::{
-    black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput,
-};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 
 use astra_flash::core::types::{
     Exchange, Instrument, MarketData, MarketEvent, MarketEventType, PriceLevel, Side,
 };
-use astra_flash::gateway::{OrderBookSnapshot, OrderBookLevel};
-use astra_flash::publisher::buffer::{SerializationBuffer, size_hints};
+use astra_flash::gateway::{OrderBookLevel, OrderBookSnapshot};
+use astra_flash::publisher::buffer::{size_hints, SerializationBuffer};
 use rust_decimal_macros::dec;
 
 // =============================================================================
@@ -106,9 +104,7 @@ fn bench_instrument_clone(c: &mut Criterion) {
 
     let instrument = create_instrument();
 
-    group.bench_function("single_clone", |b| {
-        b.iter(|| black_box(instrument.clone()))
-    });
+    group.bench_function("single_clone", |b| b.iter(|| black_box(instrument.clone())));
 
     // Clone in a loop (simulates hot path)
     group.bench_function("batch_clone_100", |b| {
@@ -135,13 +131,9 @@ fn bench_market_event_clone(c: &mut Criterion) {
         let event = create_market_event(*depth);
         group.throughput(Throughput::Elements(1));
 
-        group.bench_with_input(
-            BenchmarkId::new("depth", depth),
-            depth,
-            |b, _| {
-                b.iter(|| black_box(event.clone()))
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("depth", depth), depth, |b, _| {
+            b.iter(|| black_box(event.clone()))
+        });
     }
 
     group.finish();
@@ -283,26 +275,22 @@ fn bench_batch_instrument_creation(c: &mut Criterion) {
     for count in [10, 100, 1000].iter() {
         group.throughput(Throughput::Elements(*count as u64));
 
-        group.bench_with_input(
-            BenchmarkId::new("count", count),
-            count,
-            |b, &count| {
-                let bases = ["BTC", "ETH", "SOL", "XRP", "ADA"];
-                let quotes = ["USD", "USDT", "EUR"];
+        group.bench_with_input(BenchmarkId::new("count", count), count, |b, &count| {
+            let bases = ["BTC", "ETH", "SOL", "XRP", "ADA"];
+            let quotes = ["USD", "USDT", "EUR"];
 
-                b.iter(|| {
-                    let instruments: Vec<Instrument> = (0..count)
-                        .map(|i| {
-                            let base = bases[i % bases.len()];
-                            let quote = quotes[i % quotes.len()];
-                            let raw_symbol = format!("{}-PERPETUAL", base);
-                            Instrument::new(base, quote, Exchange::Deribit, raw_symbol)
-                        })
-                        .collect();
-                    black_box(instruments)
-                })
-            },
-        );
+            b.iter(|| {
+                let instruments: Vec<Instrument> = (0..count)
+                    .map(|i| {
+                        let base = bases[i % bases.len()];
+                        let quote = quotes[i % quotes.len()];
+                        let raw_symbol = format!("{}-PERPETUAL", base);
+                        Instrument::new(base, quote, Exchange::Deribit, raw_symbol)
+                    })
+                    .collect();
+                black_box(instruments)
+            })
+        });
     }
 
     group.finish();
@@ -346,13 +334,7 @@ fn create_gateway_snapshot(depth: usize) -> OrderBookSnapshot {
         .map(|i| OrderBookLevel::new(50010.0 + i as f64 * 10.0, 2.0))
         .collect();
 
-    OrderBookSnapshot::new(
-        "BTC_USD",
-        "deribit",
-        1234567890,
-        bids,
-        asks,
-    )
+    OrderBookSnapshot::new("BTC_USD", "deribit", 1234567890, bids, asks)
 }
 
 fn bench_serialization_buffer(c: &mut Criterion) {
@@ -363,23 +345,20 @@ fn bench_serialization_buffer(c: &mut Criterion) {
         group.throughput(Throughput::Elements(1));
 
         // Benchmark: JSON without buffer reuse (allocates every time)
-        group.bench_with_input(
-            BenchmarkId::new("json_no_reuse", depth),
-            depth,
-            |b, _| {
-                b.iter(|| {
-                    let json = serde_json::to_vec(&snapshot).expect("serialize");
-                    black_box(json)
-                })
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("json_no_reuse", depth), depth, |b, _| {
+            b.iter(|| {
+                let json = serde_json::to_vec(&snapshot).expect("serialize");
+                black_box(json)
+            })
+        });
 
         // Benchmark: JSON with buffer reuse
         group.bench_with_input(
             BenchmarkId::new("json_with_buffer", depth),
             depth,
             |b, _| {
-                let mut buffer = SerializationBuffer::with_capacity(size_hints::JSON_BOOK_50_LEVELS);
+                let mut buffer =
+                    SerializationBuffer::with_capacity(size_hints::JSON_BOOK_50_LEVELS);
                 b.iter(|| {
                     let bytes = buffer.write_json(&snapshot).expect("serialize");
                     black_box(bytes.len())
@@ -404,7 +383,8 @@ fn bench_serialization_buffer(c: &mut Criterion) {
             BenchmarkId::new("bincode_with_buffer", depth),
             depth,
             |b, _| {
-                let mut buffer = SerializationBuffer::with_capacity(size_hints::BINCODE_BOOK_50_LEVELS);
+                let mut buffer =
+                    SerializationBuffer::with_capacity(size_hints::BINCODE_BOOK_50_LEVELS);
                 b.iter(|| {
                     let bytes = buffer.write_bincode(&snapshot).expect("serialize");
                     black_box(bytes.len())
@@ -510,4 +490,9 @@ criterion_group!(
     bench_high_throughput_serialization,
 );
 
-criterion_main!(string_benches, event_benches, adapter_benches, buffer_benches);
+criterion_main!(
+    string_benches,
+    event_benches,
+    adapter_benches,
+    buffer_benches
+);

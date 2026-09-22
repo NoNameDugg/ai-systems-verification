@@ -85,7 +85,11 @@ fn test_default_publisher_config_values() {
 fn test_default_config_is_valid() {
     let config = FlashConfig::default();
     let result = config.validate();
-    assert!(result.is_ok(), "Default config should be valid: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "Default config should be valid: {:?}",
+        result
+    );
 }
 
 // =============================================================================
@@ -134,7 +138,10 @@ fn test_load_empty_yaml_uses_all_defaults() {
     let config = FlashConfig::from_yaml(yaml).expect("Should handle empty YAML");
     let default = FlashConfig::default();
 
-    assert_eq!(config.websocket.connect_timeout_ms, default.websocket.connect_timeout_ms);
+    assert_eq!(
+        config.websocket.connect_timeout_ms,
+        default.websocket.connect_timeout_ms
+    );
     assert_eq!(config.redis.url, default.redis.url);
 }
 
@@ -153,7 +160,10 @@ fn test_load_yaml_with_nested_objects() {
 
     assert_eq!(config.publisher.format, SerializationFormat::Rkyv);
     assert_eq!(config.publisher.backpressure.capacity, 50000);
-    assert_eq!(config.publisher.backpressure.action, BackpressureAction::Block);
+    assert_eq!(
+        config.publisher.backpressure.action,
+        BackpressureAction::Block
+    );
 }
 
 /// Test loading YAML with exchange configurations.
@@ -275,7 +285,9 @@ fn test_validate_websocket_timeout_below_min() {
     assert!(result.is_err());
 
     let errors = result.unwrap_err();
-    assert!(errors.iter().any(|e| e.to_string().contains("connect_timeout_ms")));
+    assert!(errors
+        .iter()
+        .any(|e| e.to_string().contains("connect_timeout_ms")));
 }
 
 /// Test validation rejects WebSocket timeout above maximum.
@@ -298,7 +310,9 @@ fn test_validate_read_timeout_below_min() {
     assert!(result.is_err());
 
     let errors = result.unwrap_err();
-    assert!(errors.iter().any(|e| e.to_string().contains("read_timeout_ms")));
+    assert!(errors
+        .iter()
+        .any(|e| e.to_string().contains("read_timeout_ms")));
 }
 
 /// Test validation rejects read timeout above maximum (Batch 1.3: Resilience).
@@ -311,7 +325,9 @@ fn test_validate_read_timeout_above_max() {
     assert!(result.is_err());
 
     let errors = result.unwrap_err();
-    assert!(errors.iter().any(|e| e.to_string().contains("read_timeout_ms")));
+    assert!(errors
+        .iter()
+        .any(|e| e.to_string().contains("read_timeout_ms")));
 }
 
 /// Test validation accepts valid read timeout (Batch 1.3: Resilience).
@@ -405,7 +421,9 @@ fn test_validate_topic_prefix_not_empty() {
     assert!(result.is_err());
 
     let errors = result.unwrap_err();
-    assert!(errors.iter().any(|e| e.to_string().contains("topic_prefix")));
+    assert!(errors
+        .iter()
+        .any(|e| e.to_string().contains("topic_prefix")));
 }
 
 /// Test validation returns all errors, not just first.
@@ -420,7 +438,11 @@ fn test_validate_returns_all_errors() {
     assert!(result.is_err());
 
     let errors = result.unwrap_err();
-    assert!(errors.len() >= 3, "Should return at least 3 errors, got {}", errors.len());
+    assert!(
+        errors.len() >= 3,
+        "Should return at least 3 errors, got {}",
+        errors.len()
+    );
 }
 
 // =============================================================================
@@ -498,7 +520,10 @@ fn test_config_round_trip_yaml() {
     let parsed: FlashConfig = serde_yaml::from_str(&yaml).expect("Should deserialize");
 
     // Key fields should match
-    assert_eq!(config.websocket.connect_timeout_ms, parsed.websocket.connect_timeout_ms);
+    assert_eq!(
+        config.websocket.connect_timeout_ms,
+        parsed.websocket.connect_timeout_ms
+    );
     assert_eq!(config.redis.url, parsed.redis.url);
     assert_eq!(config.publisher.format, parsed.publisher.format);
 }
@@ -507,15 +532,21 @@ fn test_config_round_trip_yaml() {
 #[test]
 fn test_serialization_format_enum_values() {
     assert_eq!(
-        serde_yaml::to_string(&SerializationFormat::Json).unwrap().trim(),
+        serde_yaml::to_string(&SerializationFormat::Json)
+            .unwrap()
+            .trim(),
         "json"
     );
     assert_eq!(
-        serde_yaml::to_string(&SerializationFormat::Bincode).unwrap().trim(),
+        serde_yaml::to_string(&SerializationFormat::Bincode)
+            .unwrap()
+            .trim(),
         "bincode"
     );
     assert_eq!(
-        serde_yaml::to_string(&SerializationFormat::Rkyv).unwrap().trim(),
+        serde_yaml::to_string(&SerializationFormat::Rkyv)
+            .unwrap()
+            .trim(),
         "rkyv"
     );
 }
@@ -523,11 +554,26 @@ fn test_serialization_format_enum_values() {
 /// Test LogLevel enum serializes correctly.
 #[test]
 fn test_log_level_enum_values() {
-    assert_eq!(serde_yaml::to_string(&LogLevel::Trace).unwrap().trim(), "trace");
-    assert_eq!(serde_yaml::to_string(&LogLevel::Debug).unwrap().trim(), "debug");
-    assert_eq!(serde_yaml::to_string(&LogLevel::Info).unwrap().trim(), "info");
-    assert_eq!(serde_yaml::to_string(&LogLevel::Warn).unwrap().trim(), "warn");
-    assert_eq!(serde_yaml::to_string(&LogLevel::Error).unwrap().trim(), "error");
+    assert_eq!(
+        serde_yaml::to_string(&LogLevel::Trace).unwrap().trim(),
+        "trace"
+    );
+    assert_eq!(
+        serde_yaml::to_string(&LogLevel::Debug).unwrap().trim(),
+        "debug"
+    );
+    assert_eq!(
+        serde_yaml::to_string(&LogLevel::Info).unwrap().trim(),
+        "info"
+    );
+    assert_eq!(
+        serde_yaml::to_string(&LogLevel::Warn).unwrap().trim(),
+        "warn"
+    );
+    assert_eq!(
+        serde_yaml::to_string(&LogLevel::Error).unwrap().trim(),
+        "error"
+    );
 }
 
 // =============================================================================
@@ -571,7 +617,10 @@ fn test_maximum_valid_values() {
     config.redis.pool_size = 100;
     config.metrics.port = 65535;
 
-    assert!(config.validate().is_ok(), "Max valid values should pass validation");
+    assert!(
+        config.validate().is_ok(),
+        "Max valid values should pass validation"
+    );
 }
 
 /// Test minimum valid values.
@@ -585,7 +634,10 @@ fn test_minimum_valid_values() {
     config.redis.pool_size = 1;
     config.metrics.port = 1024;
 
-    assert!(config.validate().is_ok(), "Min valid values should pass validation");
+    assert!(
+        config.validate().is_ok(),
+        "Min valid values should pass validation"
+    );
 }
 
 // =============================================================================

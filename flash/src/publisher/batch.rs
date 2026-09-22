@@ -75,8 +75,7 @@ use thiserror::Error;
 /// let action = OverflowAction::default();
 /// assert_eq!(action, OverflowAction::Block);
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum OverflowAction {
     /// Block producer until space is available (default).
     #[default]
@@ -88,7 +87,6 @@ pub enum OverflowAction {
     /// Log warning and attempt to continue.
     WarnAndContinue,
 }
-
 
 impl std::fmt::Display for OverflowAction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -121,8 +119,7 @@ impl std::fmt::Display for OverflowAction {
 /// let status = BackpressureStatus::default();
 /// assert_eq!(status, BackpressureStatus::Normal);
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum BackpressureStatus {
     /// Queue is under warning threshold.
     #[default]
@@ -132,7 +129,6 @@ pub enum BackpressureStatus {
     /// Queue is above critical threshold.
     Critical,
 }
-
 
 impl std::fmt::Display for BackpressureStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -680,7 +676,8 @@ impl BatcherStats {
         if self.batches_published == 0 {
             self.avg_batch_size = batch_size as f64;
         } else {
-            self.avg_batch_size = ALPHA.mul_add(batch_size as f64, (1.0 - ALPHA) * self.avg_batch_size);
+            self.avg_batch_size =
+                ALPHA.mul_add(batch_size as f64, (1.0 - ALPHA) * self.avg_batch_size);
         }
     }
 

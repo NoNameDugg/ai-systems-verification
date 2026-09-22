@@ -419,9 +419,7 @@ fn borrowed_to_serde_value(borrowed: &simd_json::BorrowedValue<'_>) -> serde_jso
         }
         ValueType::F64 => serde_json::Number::from_f64(borrowed.as_f64().unwrap_or(0.0))
             .map_or(serde_json::Value::Null, serde_json::Value::Number),
-        ValueType::String => {
-            serde_json::Value::String(borrowed.as_str().unwrap_or("").to_string())
-        }
+        ValueType::String => serde_json::Value::String(borrowed.as_str().unwrap_or("").to_string()),
         ValueType::Array => {
             let arr = borrowed
                 .as_array()
@@ -635,7 +633,9 @@ mod tests {
         let parser = SimdParser::new();
         let mut data = sample_oanda_heartbeat_json();
 
-        let heartbeat = parser.parse_oanda_heartbeat(&mut data).expect("Should parse");
+        let heartbeat = parser
+            .parse_oanda_heartbeat(&mut data)
+            .expect("Should parse");
 
         assert_eq!(heartbeat.msg_type, "HEARTBEAT");
         assert!(heartbeat.time.contains("2023-12-29"));
@@ -646,7 +646,9 @@ mod tests {
         let parser = SimdParser::new();
         let mut data = br#"{"type":"HEARTBEAT","time":"2023-12-29T12:30:45.123456Z"}"#.to_vec();
 
-        let heartbeat = parser.parse_oanda_heartbeat(&mut data).expect("Should parse");
+        let heartbeat = parser
+            .parse_oanda_heartbeat(&mut data)
+            .expect("Should parse");
 
         assert!(heartbeat.time.contains("12:30:45"));
     }
@@ -656,7 +658,9 @@ mod tests {
         let parser = SimdParser::new();
         let mut data = br#"{"type":"HEARTBEAT","time":"2023-01-01T00:00:00Z"}"#.to_vec();
 
-        let heartbeat = parser.parse_oanda_heartbeat(&mut data).expect("Should parse");
+        let heartbeat = parser
+            .parse_oanda_heartbeat(&mut data)
+            .expect("Should parse");
 
         assert_eq!(heartbeat.msg_type, "HEARTBEAT");
     }

@@ -98,11 +98,11 @@ fn test_burst_with_memory_pressure() {
                 // Drop message under critical pressure
                 dropped.fetch_add(1, Ordering::Relaxed);
                 continue;
-            },
+            }
             BackpressureStatus::Warning => {
                 // Slow down but continue
-            },
-            BackpressureStatus::Normal => {},
+            }
+            BackpressureStatus::Normal => {}
         }
 
         // Process message
@@ -301,20 +301,20 @@ fn test_combined_chaos_full_scenario() {
             0 | 5 => {
                 // Network disconnect/reconnect cycle
                 chaos_events.fetch_add(1, Ordering::Relaxed);
-            },
+            }
             10 => {
                 // Redis failure simulation
                 chaos_events.fetch_add(1, Ordering::Relaxed);
-            },
+            }
             15 => {
                 // High backpressure
                 let (_, _) = backpressure.update(90);
                 chaos_events.fetch_add(1, Ordering::Relaxed);
-            },
+            }
             _ => {
                 // Normal operation
                 let (_, _) = backpressure.update(50);
-            },
+            }
         }
 
         // Check if operation should proceed

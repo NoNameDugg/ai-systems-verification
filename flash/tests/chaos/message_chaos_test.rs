@@ -332,8 +332,8 @@ fn test_message_chaos_sequence_recovery() {
             SequenceCheckResult::Gap(_) => {
                 gaps_detected += 1;
                 // In real system, would request snapshot here
-            },
-            SequenceCheckResult::OutOfOrder => {},
+            }
+            SequenceCheckResult::OutOfOrder => {}
         }
     }
 
@@ -378,7 +378,7 @@ fn test_message_chaos_burst_with_validation() {
             Ok(_) => {
                 book.apply_delta(Side::Bid, vec![level], ts);
                 validated += 1;
-            },
+            }
             Err(_) => invalid += 1,
         }
     }

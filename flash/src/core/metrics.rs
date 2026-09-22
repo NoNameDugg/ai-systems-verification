@@ -427,14 +427,22 @@ impl FlashMetrics {
         describe_gauge!(metric_names::QUEUE_CAPACITY, "Queue capacity");
         describe_gauge!(metric_names::UPTIME_SECONDS, "Process uptime in seconds");
 
-        describe_counter!(FLASH_ORDERBOOK_UPDATES_TOTAL,
-            "Total orderbook update messages processed");
-        describe_histogram!(FLASH_REDIS_BATCH_SIZE,
-            "Size of Redis publish batches in messages per batch");
-        describe_gauge!(FLASH_BACKPRESSURE_STATUS,
-            "Backpressure status: 0 = normal, 1 = active backpressure");
-        describe_counter!(FLASH_MESSAGES_DROPPED_TOTAL,
-            "Total messages dropped due to backpressure or buffer overflow");
+        describe_counter!(
+            FLASH_ORDERBOOK_UPDATES_TOTAL,
+            "Total orderbook update messages processed"
+        );
+        describe_histogram!(
+            FLASH_REDIS_BATCH_SIZE,
+            "Size of Redis publish batches in messages per batch"
+        );
+        describe_gauge!(
+            FLASH_BACKPRESSURE_STATUS,
+            "Backpressure status: 0 = normal, 1 = active backpressure"
+        );
+        describe_counter!(
+            FLASH_MESSAGES_DROPPED_TOTAL,
+            "Total messages dropped due to backpressure or buffer overflow"
+        );
     }
 
     // =========================================================================

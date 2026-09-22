@@ -13,13 +13,15 @@
 //!
 //! Run with: `cargo test --test publisher -- batch`
 
+use astra_flash::core::types::{
+    now_micros, Exchange, Instrument, MarketData, MarketEvent, MarketEventType, Side,
+};
 use astra_flash::publisher::batch::{
     BackpressureStatus, BatchConfig, BatchConfigBuilder, BatchMessage, BatchPublishResult,
     BatcherError, BatcherEvent, BatcherStats, DropReason, FlushTrigger, MessageBatch,
     OverflowAction,
 };
 use astra_flash::publisher::stream::SerializationFormat;
-use astra_flash::core::types::{now_micros, Exchange, Instrument, MarketEvent, MarketEventType, MarketData, Side};
 use rust_decimal_macros::dec;
 use std::time::Duration;
 
@@ -105,9 +107,7 @@ fn test_batch_config_builder_all_fields() {
 
 #[test]
 fn test_batch_config_validation_max_batch_size_zero() {
-    let result = BatchConfigBuilder::new()
-        .max_batch_size(0)
-        .build();
+    let result = BatchConfigBuilder::new().max_batch_size(0).build();
 
     assert!(result.is_err());
     if let Err(BatcherError::InvalidConfig { reason }) = result {
@@ -134,9 +134,7 @@ fn test_batch_config_validation_thresholds_inverted() {
 
 #[test]
 fn test_batch_config_validation_threshold_out_of_range() {
-    let result = BatchConfigBuilder::new()
-        .warn_threshold(1.5)
-        .build();
+    let result = BatchConfigBuilder::new().warn_threshold(1.5).build();
 
     assert!(result.is_err());
     if let Err(BatcherError::InvalidConfig { reason }) = result {
@@ -176,7 +174,10 @@ fn test_batch_config_builder_defaults() {
 
     // Should use same defaults as BatchConfig::default()
     assert_eq!(config.max_batch_size, BatchConfig::default().max_batch_size);
-    assert_eq!(config.channel_capacity, BatchConfig::default().channel_capacity);
+    assert_eq!(
+        config.channel_capacity,
+        BatchConfig::default().channel_capacity
+    );
 }
 
 // =============================================================================
@@ -408,10 +409,7 @@ fn test_batcher_flush_trigger_eq() {
 
 #[test]
 fn test_batcher_batch_config_min_batch_size() {
-    let config = BatchConfigBuilder::new()
-        .min_batch_size(5)
-        .build()
-        .unwrap();
+    let config = BatchConfigBuilder::new().min_batch_size(5).build().unwrap();
 
     assert_eq!(config.min_batch_size, 5);
 }
@@ -428,15 +426,9 @@ fn test_batcher_batch_config_max_batch_delay() {
 
 #[test]
 fn test_batcher_auto_flush_config() {
-    let config_auto = BatchConfigBuilder::new()
-        .auto_flush(true)
-        .build()
-        .unwrap();
+    let config_auto = BatchConfigBuilder::new().auto_flush(true).build().unwrap();
 
-    let config_manual = BatchConfigBuilder::new()
-        .auto_flush(false)
-        .build()
-        .unwrap();
+    let config_manual = BatchConfigBuilder::new().auto_flush(false).build().unwrap();
 
     assert!(config_auto.auto_flush);
     assert!(!config_manual.auto_flush);

@@ -199,8 +199,7 @@ impl fmt::Display for OrderType {
 /// let tif = TimeInForce::GTC;
 /// assert_eq!(tif.as_str(), "GTC");
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum TimeInForce {
     /// Good-Till-Cancelled - remains active until filled or cancelled.
     #[default]
@@ -234,7 +233,6 @@ impl fmt::Display for TimeInForce {
         write!(f, "{}", self.as_str())
     }
 }
-
 
 // =============================================================================
 // ORDER STATUS

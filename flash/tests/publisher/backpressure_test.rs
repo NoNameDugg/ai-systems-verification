@@ -8,8 +8,8 @@
 //! - Flood test (sending faster than consumer can process)
 
 use astra_flash::publisher::backpressure::{
-    BackpressureConfig, BackpressureMetrics, BackpressurePolicy, BackpressureSendError,
-    BackpressureSender, send_with_backpressure,
+    send_with_backpressure, BackpressureConfig, BackpressureMetrics, BackpressurePolicy,
+    BackpressureSendError, BackpressureSender,
 };
 use std::sync::Arc;
 use std::time::Duration;
@@ -74,7 +74,10 @@ fn test_backpressure_policy_default() {
 #[test]
 fn test_backpressure_policy_display() {
     assert_eq!(BackpressurePolicy::DropNewest.to_string(), "DropNewest");
-    assert_eq!(BackpressurePolicy::WarnAndContinue.to_string(), "WarnAndContinue");
+    assert_eq!(
+        BackpressurePolicy::WarnAndContinue.to_string(),
+        "WarnAndContinue"
+    );
 }
 
 // =============================================================================
@@ -377,7 +380,8 @@ async fn test_flood_fast_producer_slow_consumer() {
     // Consumer: Process slowly (simulates slow Redis writes)
     let consumer_handle = tokio::spawn(async move {
         let mut received = 0;
-        while let Ok(msg) = tokio::time::timeout(Duration::from_millis(100), receiver.recv()).await {
+        while let Ok(msg) = tokio::time::timeout(Duration::from_millis(100), receiver.recv()).await
+        {
             if msg.is_none() {
                 break;
             }
@@ -401,7 +405,10 @@ async fn test_flood_fast_producer_slow_consumer() {
     let sent = metrics.sent_frames();
 
     // VERIFICATION: Under flood conditions, frames MUST be dropped
-    assert!(dropped > 0, "Flood test should have dropped frames, but dropped = 0");
+    assert!(
+        dropped > 0,
+        "Flood test should have dropped frames, but dropped = 0"
+    );
 
     // Total should equal 1000 (sent + dropped)
     assert_eq!(
@@ -581,6 +588,7 @@ fn test_backpressure_send_error_display() {
     let err: BackpressureSendError<u64> = BackpressureSendError::ChannelFull { dropped_value: 42 };
     assert!(err.to_string().contains("Channel full"));
 
-    let err2: BackpressureSendError<u64> = BackpressureSendError::ChannelClosed { dropped_value: 99 };
+    let err2: BackpressureSendError<u64> =
+        BackpressureSendError::ChannelClosed { dropped_value: 99 };
     assert!(err2.to_string().contains("closed"));
 }

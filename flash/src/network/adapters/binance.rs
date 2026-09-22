@@ -193,9 +193,7 @@ impl BinanceAdapter {
         let timestamp = parse_timestamp(json.get("E").unwrap_or(&serde_json::Value::Null), true)
             .unwrap_or_else(|_| crate::core::types::now_micros());
 
-        let price = json
-            .get("p")
-            .map_or(0.0, |v| parse_price(v).unwrap_or(0.0));
+        let price = json.get("p").map_or(0.0, |v| parse_price(v).unwrap_or(0.0));
 
         let quantity = json
             .get("q")
@@ -203,7 +201,10 @@ impl BinanceAdapter {
             .unwrap_or_default();
 
         // m = true means buyer is the market maker, so taker is seller (Ask)
-        let is_buyer_maker = json.get("m").and_then(serde_json::Value::as_bool).unwrap_or(false);
+        let is_buyer_maker = json
+            .get("m")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false);
         let side = if is_buyer_maker { Side::Ask } else { Side::Bid };
 
         let trade_id = json
@@ -283,11 +284,11 @@ impl ExchangeAdapter for BinanceAdapter {
             "depthUpdate" => {
                 let event = self.parse_depth_update(&json)?;
                 Ok(vec![event])
-            },
+            }
             "trade" => {
                 let event = self.parse_trade_message(&json)?;
                 Ok(vec![event])
-            },
+            }
             "" => {
                 // Might be partial depth snapshot
                 if json.get("bids").is_some() && json.get("asks").is_some() {
@@ -297,11 +298,11 @@ impl ExchangeAdapter for BinanceAdapter {
                     // Unknown format
                     Ok(vec![])
                 }
-            },
+            }
             _ => {
                 // Unknown event type
                 Ok(vec![])
-            },
+            }
         }
     }
 

@@ -561,7 +561,10 @@ mod tests {
 
     #[test]
     fn test_policy_default() {
-        assert_eq!(BackpressurePolicy::default(), BackpressurePolicy::DropNewest);
+        assert_eq!(
+            BackpressurePolicy::default(),
+            BackpressurePolicy::DropNewest
+        );
     }
 
     #[test]

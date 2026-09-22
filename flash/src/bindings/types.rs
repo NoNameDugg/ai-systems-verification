@@ -706,7 +706,7 @@ impl PyMarketData {
         match &self.inner {
             MarketDataInner::Book { bids, asks } => {
                 format!("MarketData.Book(bids={}, asks={})", bids.len(), asks.len())
-            },
+            }
             MarketDataInner::Trade {
                 price,
                 quantity,
@@ -719,10 +719,10 @@ impl PyMarketData {
                     quantity,
                     side.__repr__()
                 )
-            },
+            }
             MarketDataInner::Heartbeat { exchange_time } => {
                 format!("MarketData.Heartbeat(exchange_time={})", exchange_time)
-            },
+            }
         }
     }
 }

@@ -314,10 +314,10 @@ async fn test_failure_malformed_json_handled() {
                 } else {
                     successful_parses += 1;
                 }
-            },
+            }
             Err(_) => {
                 parse_errors += 1;
-            },
+            }
         }
     }
 

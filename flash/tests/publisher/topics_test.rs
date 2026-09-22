@@ -10,10 +10,9 @@
 use astra_flash::core::types::{Exchange, Instrument, MarketData, MarketEvent, MarketEventType};
 use astra_flash::publisher::stream::TopicType;
 use astra_flash::publisher::topics::{
-    PatternSegment, RouterConfig, RouterConfigBuilder, RoutingAction, RoutingError,
-    RoutingFilter, RoutingFilterBuilder, RoutingResult, RoutingRule, RoutingRuleBuilder,
-    RoutingStats, RuleId, TemplateSegment, TopicPattern, TopicRouter, TopicRouterBuilder,
-    TopicTemplate,
+    PatternSegment, RouterConfig, RouterConfigBuilder, RoutingAction, RoutingError, RoutingFilter,
+    RoutingFilterBuilder, RoutingResult, RoutingRule, RoutingRuleBuilder, RoutingStats, RuleId,
+    TemplateSegment, TopicPattern, TopicRouter, TopicRouterBuilder, TopicTemplate,
 };
 
 // =============================================================================
@@ -115,17 +114,13 @@ fn test_router_config_validate_success() {
 
 #[test]
 fn test_router_config_validate_empty_prefix() {
-    let config = RouterConfigBuilder::new()
-        .default_prefix("")
-        .build();
+    let config = RouterConfigBuilder::new().default_prefix("").build();
     assert!(config.validate().is_err());
 }
 
 #[test]
 fn test_router_config_validate_zero_topics() {
-    let config = RouterConfigBuilder::new()
-        .max_topics_per_event(0)
-        .build();
+    let config = RouterConfigBuilder::new().max_topics_per_event(0).build();
     assert!(config.validate().is_err());
 }
 
@@ -195,9 +190,18 @@ fn test_topic_pattern_clone() {
 
 #[test]
 fn test_pattern_segment_variants() {
-    assert!(matches!(PatternSegment::Exact("test".to_string()), PatternSegment::Exact(_)));
-    assert!(matches!(PatternSegment::SingleWildcard, PatternSegment::SingleWildcard));
-    assert!(matches!(PatternSegment::MultiWildcard, PatternSegment::MultiWildcard));
+    assert!(matches!(
+        PatternSegment::Exact("test".to_string()),
+        PatternSegment::Exact(_)
+    ));
+    assert!(matches!(
+        PatternSegment::SingleWildcard,
+        PatternSegment::SingleWildcard
+    ));
+    assert!(matches!(
+        PatternSegment::MultiWildcard,
+        PatternSegment::MultiWildcard
+    ));
 }
 
 // =============================================================================
@@ -255,9 +259,7 @@ fn test_routing_filter_topic_type() {
 
 #[test]
 fn test_routing_filter_base_asset() {
-    let filter = RoutingFilterBuilder::new()
-        .base_asset("BTC")
-        .build();
+    let filter = RoutingFilterBuilder::new().base_asset("BTC").build();
 
     let btc_event = test_book_event();
     let eth_event = MarketEvent {
@@ -271,9 +273,7 @@ fn test_routing_filter_base_asset() {
 
 #[test]
 fn test_routing_filter_quote_asset() {
-    let filter = RoutingFilterBuilder::new()
-        .quote_asset("USD")
-        .build();
+    let filter = RoutingFilterBuilder::new().quote_asset("USD").build();
 
     let usd_event = test_book_event();
     let usdt_event = MarketEvent {
@@ -402,10 +402,7 @@ fn test_routing_rule_builder() {
 
 #[test]
 fn test_routing_rule_priority_ordering() {
-    let rule1 = RoutingRuleBuilder::new("high")
-        .priority(1)
-        .build()
-        .unwrap();
+    let rule1 = RoutingRuleBuilder::new("high").priority(1).build().unwrap();
     let rule2 = RoutingRuleBuilder::new("low")
         .priority(100)
         .build()
@@ -515,7 +512,11 @@ fn test_router_builder() {
         .config(RouterConfig::default())
         .add_rule(
             RoutingRuleBuilder::new("book-rule")
-                .filter(RoutingFilterBuilder::new().topic_type(TopicType::Book).build())
+                .filter(
+                    RoutingFilterBuilder::new()
+                        .topic_type(TopicType::Book)
+                        .build(),
+                )
                 .target_template("market_data.{exchange}.{base}_{quote}.book")
                 .build()
                 .unwrap(),
@@ -530,7 +531,11 @@ fn test_router_route_book_event() {
     let router = TopicRouterBuilder::new()
         .add_rule(
             RoutingRuleBuilder::new("book-rule")
-                .filter(RoutingFilterBuilder::new().topic_type(TopicType::Book).build())
+                .filter(
+                    RoutingFilterBuilder::new()
+                        .topic_type(TopicType::Book)
+                        .build(),
+                )
                 .target_template("market_data.{exchange}.{base}_{quote}.book")
                 .build()
                 .unwrap(),
@@ -539,7 +544,9 @@ fn test_router_route_book_event() {
 
     let result = router.route(&test_book_event());
     assert!(!result.topics.is_empty());
-    assert!(result.topics.contains(&"market_data.deribit.btc_usd.book".to_string()));
+    assert!(result
+        .topics
+        .contains(&"market_data.deribit.btc_usd.book".to_string()));
 }
 
 #[test]
@@ -547,7 +554,11 @@ fn test_router_route_trade_event() {
     let router = TopicRouterBuilder::new()
         .add_rule(
             RoutingRuleBuilder::new("trade-rule")
-                .filter(RoutingFilterBuilder::new().topic_type(TopicType::Trade).build())
+                .filter(
+                    RoutingFilterBuilder::new()
+                        .topic_type(TopicType::Trade)
+                        .build(),
+                )
                 .target_template("market_data.{exchange}.{base}_{quote}.trade")
                 .build()
                 .unwrap(),
@@ -555,7 +566,9 @@ fn test_router_route_trade_event() {
         .build();
 
     let result = router.route(&test_trade_event());
-    assert!(result.topics.contains(&"market_data.deribit.btc_usd.trade".to_string()));
+    assert!(result
+        .topics
+        .contains(&"market_data.deribit.btc_usd.trade".to_string()));
 }
 
 #[test]
@@ -793,8 +806,8 @@ fn test_router_case_insensitive() {
                 .filter(
                     RoutingFilterBuilder::new()
                         .base_asset("btc")
-                        .case_insensitive(true)  // Must be set on filter for matching
-                        .build()
+                        .case_insensitive(true) // Must be set on filter for matching
+                        .build(),
                 )
                 .target_template("btc.topic")
                 .build()
@@ -881,8 +894,12 @@ fn test_routing_error_variants() {
             template: "test".to_string(),
             reason: "reason".to_string(),
         },
-        RoutingError::RuleNotFound { id: RuleId::from(1u64) },
-        RoutingError::DuplicateRule { id: RuleId::from(1u64) },
+        RoutingError::RuleNotFound {
+            id: RuleId::from(1u64),
+        },
+        RoutingError::DuplicateRule {
+            id: RuleId::from(1u64),
+        },
         RoutingError::TooManyTopics { count: 10, max: 5 },
         RoutingError::NoMatchingRules {
             event_type: "Book".to_string(),

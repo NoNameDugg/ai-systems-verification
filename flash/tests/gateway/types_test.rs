@@ -87,8 +87,7 @@ fn test_order_book_level_json_deserialization() {
 fn test_order_book_snapshot_json_roundtrip() {
     let snapshot = test_order_book_snapshot();
     let json = snapshot.to_json().expect("Should serialize");
-    let deserialized: OrderBookSnapshot =
-        serde_json::from_str(&json).expect("Should deserialize");
+    let deserialized: OrderBookSnapshot = serde_json::from_str(&json).expect("Should deserialize");
 
     assert_eq!(snapshot.symbol, deserialized.symbol);
     assert_eq!(snapshot.exchange, deserialized.exchange);
@@ -208,7 +207,7 @@ fn test_validate_unsorted_bids_fails() {
         "oanda",
         0,
         vec![
-            OrderBookLevel::new(1.0849, 500000.0), // Lower first (wrong)
+            OrderBookLevel::new(1.0849, 500000.0),  // Lower first (wrong)
             OrderBookLevel::new(1.0850, 1000000.0), // Higher second (wrong)
         ],
         vec![],

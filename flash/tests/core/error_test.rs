@@ -66,7 +66,10 @@ fn test_sequence_gap_display() {
 #[test]
 fn test_config_error_display() {
     let err = FlashError::ConfigError("Invalid port number".into());
-    assert_eq!(err.to_string(), "Invalid configuration: Invalid port number");
+    assert_eq!(
+        err.to_string(),
+        "Invalid configuration: Invalid port number"
+    );
 }
 
 /// Test PublishFailed error message format.
@@ -163,7 +166,10 @@ fn test_is_recoverable_true_cases() {
 fn test_is_recoverable_false_cases() {
     // Config errors are not recoverable - require restart/fix
     assert!(!FlashError::ConfigError("test".into()).is_recoverable());
-    assert!(!FlashError::ConfigFileNotFound { path: "test".into() }.is_recoverable());
+    assert!(!FlashError::ConfigFileNotFound {
+        path: "test".into()
+    }
+    .is_recoverable());
 
     // Internal errors are not recoverable - indicate bugs
     assert!(!FlashError::InternalError("test".into()).is_recoverable());
@@ -282,7 +288,9 @@ fn test_error_code_uniqueness() {
             reason: "test".into(),
         },
         FlashError::ConfigError("test".into()),
-        FlashError::ConfigFileNotFound { path: "test".into() },
+        FlashError::ConfigFileNotFound {
+            path: "test".into(),
+        },
         FlashError::InternalError("test".into()),
         FlashError::AuthenticationFailed {
             exchange: "test".into(),
@@ -526,7 +534,11 @@ fn test_read_timeout_display() {
 #[test]
 fn test_read_timeout_error_code() {
     let err = FlashError::ReadTimeout { timeout_ms: 5000 };
-    assert_eq!(err.error_code(), 106, "ReadTimeout should have error code 106");
+    assert_eq!(
+        err.error_code(),
+        106,
+        "ReadTimeout should have error code 106"
+    );
 }
 
 /// Test ReadTimeout is recoverable.

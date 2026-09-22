@@ -250,9 +250,7 @@ impl SerializationBuffer {
             self.peak_size = current_len;
         }
         // Track if buffer had to grow beyond initial capacity
-        if self.buffer.capacity() > DEFAULT_BUFFER_CAPACITY
-            && self.growth_count == 0
-        {
+        if self.buffer.capacity() > DEFAULT_BUFFER_CAPACITY && self.growth_count == 0 {
             self.growth_count += 1;
         }
     }

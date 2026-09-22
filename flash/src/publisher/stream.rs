@@ -86,8 +86,7 @@ use thiserror::Error;
 /// let format = SerializationFormat::default();
 /// assert_eq!(format, SerializationFormat::Bincode);
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum SerializationFormat {
     /// JSON format (human-readable, for debugging).
     Json,
@@ -97,7 +96,6 @@ pub enum SerializationFormat {
     /// Rkyv format (zero-copy, fastest for Python consumption).
     Rkyv,
 }
-
 
 impl SerializationFormat {
     /// Returns the format name as a string.
@@ -524,12 +522,10 @@ pub type StreamResult<T> = Result<T, StreamError>;
 ///     .topic_prefix("custom")
 ///     .build(pool);
 /// ```
-#[derive(Debug, Clone)]
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct StreamPublisherBuilder {
     config: StreamPublisherConfig,
 }
-
 
 impl StreamPublisherBuilder {
     /// Set the serialization format.
@@ -663,13 +659,13 @@ impl StreamPublisher {
                     format,
                     reason: e.to_string(),
                 })
-            },
+            }
             SerializationFormat::Bincode => {
                 bincode::serialize(snapshot).map_err(|e| StreamError::SerializationFailed {
                     format,
                     reason: e.to_string(),
                 })
-            },
+            }
             SerializationFormat::Rkyv => {
                 // Rkyv requires Archive derive on the type
                 // For now, fall back to bincode for rkyv format
@@ -678,7 +674,7 @@ impl StreamPublisher {
                     format,
                     reason: format!("Rkyv fallback to bincode: {e}"),
                 })
-            },
+            }
         }
     }
 
@@ -697,20 +693,20 @@ impl StreamPublisher {
                     format,
                     reason: e.to_string(),
                 })
-            },
+            }
             SerializationFormat::Bincode => {
                 bincode::serialize(event).map_err(|e| StreamError::SerializationFailed {
                     format,
                     reason: e.to_string(),
                 })
-            },
+            }
             SerializationFormat::Rkyv => {
                 // Rkyv requires Archive derive on the type
                 bincode::serialize(event).map_err(|e| StreamError::SerializationFailed {
                     format,
                     reason: format!("Rkyv fallback to bincode: {e}"),
                 })
-            },
+            }
         }
     }
 

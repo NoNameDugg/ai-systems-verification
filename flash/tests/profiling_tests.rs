@@ -219,7 +219,10 @@ fn test_hotspot_json_parsing() {
     }
     let oanda_time = start.elapsed();
 
-    println!("\nJSON Parsing Breakdown ({}K iterations):", iterations / 1000);
+    println!(
+        "\nJSON Parsing Breakdown ({}K iterations):",
+        iterations / 1000
+    );
     println!("{:-<60}", "");
     println!("{:<35} {:>12} {:>10}", "Operation", "Total (ms)", "Per-op");
     println!("{:-<60}", "");
@@ -520,10 +523,7 @@ fn test_allocation_heavy_operations() {
 
     // Clone
     let _cloned = snapshot.clone();
-    println!(
-        "{:<30} {:<40}",
-        "Snapshot clone", "Deep copy of all fields"
-    );
+    println!("{:<30} {:<40}", "Snapshot clone", "Deep copy of all fields");
 
     println!("{:-<70}", "");
 

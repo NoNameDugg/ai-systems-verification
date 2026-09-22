@@ -268,7 +268,10 @@ impl OandaAdapter {
 
         let timestamp = json
             .get("time")
-            .and_then(|v| v.as_str()).map_or_else(crate::core::types::now_micros, |s| parse_iso_timestamp(s).unwrap_or_else(|_| crate::core::types::now_micros()));
+            .and_then(|v| v.as_str())
+            .map_or_else(crate::core::types::now_micros, |s| {
+                parse_iso_timestamp(s).unwrap_or_else(|_| crate::core::types::now_micros())
+            });
 
         // Parse bids
         let bids = self.parse_liquidity_levels(
@@ -314,7 +317,10 @@ impl OandaAdapter {
 
             // OANDA provides liquidity instead of quantity
             // We convert to a quantity representation
-            let liquidity = item.get("liquidity").and_then(serde_json::Value::as_u64).unwrap_or(0);
+            let liquidity = item
+                .get("liquidity")
+                .and_then(serde_json::Value::as_u64)
+                .unwrap_or(0);
 
             // Convert liquidity to decimal (represents units available)
             let quantity = Decimal::from(liquidity);
@@ -330,7 +336,10 @@ impl OandaAdapter {
     fn parse_heartbeat_message(&self, json: &serde_json::Value) -> FlashResult<MarketEvent> {
         let timestamp = json
             .get("time")
-            .and_then(|v| v.as_str()).map_or_else(crate::core::types::now_micros, |s| parse_iso_timestamp(s).unwrap_or_else(|_| crate::core::types::now_micros()));
+            .and_then(|v| v.as_str())
+            .map_or_else(crate::core::types::now_micros, |s| {
+                parse_iso_timestamp(s).unwrap_or_else(|_| crate::core::types::now_micros())
+            });
 
         Ok(MarketEvent {
             event_type: MarketEventType::Heartbeat,
@@ -397,15 +406,15 @@ impl ExchangeAdapter for OandaAdapter {
             "PRICE" => {
                 let event = self.parse_price_message(&json)?;
                 Ok(vec![event])
-            },
+            }
             "HEARTBEAT" => {
                 // Return empty for heartbeats (handled separately)
                 Ok(vec![])
-            },
+            }
             _ => {
                 // Unknown message type
                 Ok(vec![])
-            },
+            }
         }
     }
 

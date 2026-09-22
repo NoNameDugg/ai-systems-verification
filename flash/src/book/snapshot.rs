@@ -229,12 +229,14 @@ impl SnapshotValidator {
         self.validate_levels(asks, "ask")?;
 
         // 2. Check for empty snapshot
-        if bids.is_empty() && asks.is_empty()
-            && (!self.config.allow_empty_side || self.config.min_levels_per_side > 0) {
-                return Err(SnapshotError::EmptySnapshot {
-                    reason: "Both sides empty".to_string(),
-                });
-            }
+        if bids.is_empty()
+            && asks.is_empty()
+            && (!self.config.allow_empty_side || self.config.min_levels_per_side > 0)
+        {
+            return Err(SnapshotError::EmptySnapshot {
+                reason: "Both sides empty".to_string(),
+            });
+        }
 
         // 3. Check minimum levels per side
         if !self.config.allow_empty_side {
@@ -776,8 +778,8 @@ impl SnapshotProcessor {
                         old_quantity: old_level.quantity,
                         new_quantity: level.quantity,
                     });
-                },
-                _ => {}, // Unchanged
+                }
+                _ => {} // Unchanged
             }
         }
 
@@ -800,8 +802,8 @@ impl SnapshotProcessor {
                         old_quantity: old_level.quantity,
                         new_quantity: level.quantity,
                     });
-                },
-                _ => {}, // Unchanged
+                }
+                _ => {} // Unchanged
             }
         }
 

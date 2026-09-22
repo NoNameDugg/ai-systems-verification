@@ -23,8 +23,8 @@
 
 // For now, use module-level types for testing
 use astra_flash::publisher::{
-    PoolConfig, PoolError, PoolEvent, PoolHealth, PoolHealthStatus,
-    PoolStats, RedisPool, RedisPoolBuilder, RedisServerInfo,
+    PoolConfig, PoolError, PoolEvent, PoolHealth, PoolHealthStatus, PoolStats, RedisPool,
+    RedisPoolBuilder, RedisServerInfo,
 };
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Barrier};
@@ -363,8 +363,7 @@ fn test_builder_basic() {
 
 #[test]
 fn test_builder_max_size() {
-    let builder = RedisPoolBuilder::new(TEST_REDIS_URL)
-        .max_size(50);
+    let builder = RedisPoolBuilder::new(TEST_REDIS_URL).max_size(50);
     let config = builder.config();
 
     assert_eq!(config.max_size, 50);
@@ -412,8 +411,7 @@ fn test_builder_chaining() {
 
 #[test]
 fn test_builder_invalid_config() {
-    let builder = RedisPoolBuilder::new("")
-        .max_size(0);
+    let builder = RedisPoolBuilder::new("").max_size(0);
 
     let config = builder.config();
 
@@ -453,7 +451,9 @@ fn test_pool_event_connection_acquired() {
 
 #[test]
 fn test_pool_event_connection_released() {
-    let event = PoolEvent::ConnectionReleased { usage_duration_us: 1000 };
+    let event = PoolEvent::ConnectionReleased {
+        usage_duration_us: 1000,
+    };
 
     if let PoolEvent::ConnectionReleased { usage_duration_us } = event {
         assert_eq!(usage_duration_us, 1000);
@@ -652,7 +652,9 @@ async fn test_pool_health_check() {
 
     assert!(result.is_ok());
     let health = result.unwrap();
-    assert!(health.status == PoolHealthStatus::Healthy || health.status == PoolHealthStatus::Unknown);
+    assert!(
+        health.status == PoolHealthStatus::Healthy || health.status == PoolHealthStatus::Unknown
+    );
 }
 
 #[tokio::test]
@@ -780,7 +782,7 @@ async fn test_concurrent_acquire_100() {
             .max_size(20)
             .build()
             .await
-            .unwrap()
+            .unwrap(),
     );
 
     let mut handles = Vec::new();
@@ -911,7 +913,7 @@ async fn test_pool_under_load() {
             .max_size(10)
             .build()
             .await
-            .unwrap()
+            .unwrap(),
     );
 
     let start = Instant::now();
@@ -1008,7 +1010,10 @@ async fn test_pool_unreachable_server() {
         Ok(pool) => {
             // Try to actually get a connection - this should fail
             let conn_result = pool.get().await;
-            assert!(conn_result.is_err(), "Getting connection from unreachable server should fail");
+            assert!(
+                conn_result.is_err(),
+                "Getting connection from unreachable server should fail"
+            );
         }
         Err(_) => {
             // Pool creation failed, which is also acceptable
@@ -1070,7 +1075,11 @@ async fn test_acquire_latency() {
     println!("Average acquire latency: {:?}", avg_latency);
 
     // Should be under 1ms for local Redis with warm pool
-    assert!(avg_latency.as_millis() < 10, "Acquire latency too high: {:?}", avg_latency);
+    assert!(
+        avg_latency.as_millis() < 10,
+        "Acquire latency too high: {:?}",
+        avg_latency
+    );
 }
 
 #[tokio::test]
@@ -1099,7 +1108,11 @@ async fn test_throughput() {
     );
 
     // Should handle at least 10000 ops/sec for local acquire/release
-    assert!(ops_per_sec > 1000.0, "Throughput too low: {} ops/sec", ops_per_sec);
+    assert!(
+        ops_per_sec > 1000.0,
+        "Throughput too low: {} ops/sec",
+        ops_per_sec
+    );
 }
 
 // =============================================================================
@@ -1241,23 +1254,18 @@ async fn test_redis_execute_helper() {
     let test_value = "via_execute_helper";
 
     // Use pool.execute() for SET
-    let set_result: String = pool.execute(
-        redis::cmd("SET")
-            .arg(test_key)
-            .arg(test_value)
-    ).await.unwrap();
+    let set_result: String = pool
+        .execute(redis::cmd("SET").arg(test_key).arg(test_value))
+        .await
+        .unwrap();
     assert_eq!(set_result, "OK");
 
     // Use pool.execute() for GET
-    let get_result: String = pool.execute(
-        redis::cmd("GET").arg(test_key)
-    ).await.unwrap();
+    let get_result: String = pool.execute(redis::cmd("GET").arg(test_key)).await.unwrap();
     assert_eq!(get_result, test_value);
 
     // Cleanup
-    let _: i32 = pool.execute(
-        redis::cmd("DEL").arg(test_key)
-    ).await.unwrap();
+    let _: i32 = pool.execute(redis::cmd("DEL").arg(test_key)).await.unwrap();
 
     // Verify stats updated
     let stats = pool.stats();

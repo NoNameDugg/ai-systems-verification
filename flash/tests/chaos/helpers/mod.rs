@@ -287,10 +287,10 @@ where
                     Ok(duration) => {
                         success.fetch_add(1, Ordering::SeqCst);
                         latency.fetch_add(duration.as_micros() as u64, Ordering::SeqCst);
-                    },
+                    }
                     Err(_) => {
                         failure.fetch_add(1, Ordering::SeqCst);
-                    },
+                    }
                 }
             }));
         }

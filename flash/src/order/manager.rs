@@ -586,17 +586,17 @@ impl OrderManager {
                     stats.orders_filled += 1;
                     pending.remove(&order_id);
                     stats.pending_count = pending.len();
-                },
+                }
                 OrderStatus::Rejected => {
                     stats.orders_rejected += 1;
                     pending.remove(&order_id);
                     stats.pending_count = pending.len();
-                },
+                }
                 OrderStatus::Cancelled | OrderStatus::Expired => {
                     pending.remove(&order_id);
                     stats.pending_count = pending.len();
-                },
-                _ => {},
+                }
+                _ => {}
             }
         }
     }
