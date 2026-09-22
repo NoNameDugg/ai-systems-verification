@@ -69,7 +69,7 @@ The strategy that actually ran on a small real-money account (~$230) told the sa
 realized **33% win rate, 72% of exits via the loss-cutting "smart exit," and 0.1% take-profit hits.**
 The entries weren't catching alpha; the exit logic was merely cutting losses to break-even. The very
 first backtest confirmed it: the base strategy's entry timing had **no detectable edge versus random**
-(excess ≈ −0.006R; P(beats random) ≈ 0.69) and was break-even *gross* — the loss was structural cost
+(excess ≈ −0.006R; the strategy beat the random-entry null in only ~31% of draws, p ≈ 0.69) and was break-even *gross* — the loss was structural cost
 drag, not bad luck.
 
 ---
@@ -81,7 +81,7 @@ vendors are described generically; internal codenames are dropped in favor of pl
 
 | Thread | Hypothesis | Method | Verdict | Key number |
 |---|---|---|---|---|
-| Trend-pullback entries | The live FX strategy's entry timing beats random | Walk-forward replay of the live pipeline vs a randomized-entry null | NULL | excess −0.006R; P(beats random) 0.69 |
+| Trend-pullback entries | The live FX strategy's entry timing beats random | Walk-forward replay of the live pipeline vs a randomized-entry null | NULL | excess −0.006R; beats random in ~31% of draws (p 0.69) |
 | Exit/barrier geometry | Better stop/exit geometry rescues the bleed | 48-cell sweep + selection-bias (CPCV/PBO) gate | NULL | break-even gross; loss = spread (~25–38% of the stop) |
 | Information-driven bars | Activity-sampled bars surface the edge clock-time hides | Volume/tick bars vs a random-excess gate | NULL | no cell cleared the gate; best p=0.066 |
 | FX carry | The carry premium is investable for retail FX | Decompose carry; crash + significance gates | INCONCLUSIVE | gross +1.09% − 5.42% broker markup = **net −4.77%/yr**; maxDD −63% |
