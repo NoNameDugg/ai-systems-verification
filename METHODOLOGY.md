@@ -126,6 +126,6 @@ Small rules, learned the expensive way, that prevent whole classes of error:
 
 I build the part of a system that most people skip: the apparatus that decides whether the rest of
 it is real. That skill — adversarial verification, test-first construction, honest null-reporting,
-and provable self-containment — is the same skill an evaluation or verification role demands. The
-components and the research record in this repository are the evidence that I actually work this way,
-not just describe it.
+and provable self-containment — is the skill that matters wherever a system's value has to be
+demonstrated before it is trusted. The components and the research record in this repository are
+the evidence that I actually work this way, not just describe it.
