@@ -125,6 +125,17 @@ jobs:
       - name: build
         working-directory: ${{ matrix.component }}
         run: cargo build --locked --all-targets
+      - name: fmt check
+        working-directory: ${{ matrix.component }}
+        run: cargo fmt --check
+      # clippy is gated for blackbox only. flash cannot be built on the author's Windows
+      # machine (WDAC blocks a dependency's build script), so a flash clippy gate would be
+      # un-iterable locally. Scope is lib + bins + examples: blackbox's test targets carry
+      # five pre-existing lints in test code that are deliberately left untouched.
+      - name: clippy (blackbox only)
+        if: matrix.component == 'blackbox'
+        working-directory: blackbox
+        run: cargo clippy --locked --lib --bins --examples -- -D warnings
       - name: test
         working-directory: ${{ matrix.component }}
         run: ${{ matrix.test_cmd }}
