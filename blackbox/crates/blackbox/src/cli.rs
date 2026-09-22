@@ -462,7 +462,7 @@ pub fn execute_stats(journal: &PathBuf) -> CliResult<JournalStats> {
     };
 
     let mut records_by_type: Vec<_> = type_counts.into_iter().collect();
-    records_by_type.sort_by(|a, b| b.1.cmp(&a.1)); // Sort by count descending
+    records_by_type.sort_by_key(|a| std::cmp::Reverse(a.1)); // Sort by count descending
 
     Ok(JournalStats {
         total_records,
