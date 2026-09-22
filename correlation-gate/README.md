@@ -32,8 +32,9 @@ new signal.
 
 The suite collects **456 tests**. The default run reports **420 passed, 36 skipped** (the 36 are
 wall-clock perf tests, opt-in via `--runperf`, which reports **455 passed, 1 skipped**). Line coverage
-measured with `python -m pytest --cov=src` is **99%** (1,397 statements, 12 missed). See
-[Testing](#testing) for how to run it.
+measured with `python -m pytest --cov=src` is **99%** (12 statements missed; the statement total is
+1,397 under Python 3.14 and 1,477 under 3.12, as the CI job logs show). See [Testing](#testing) for how
+to run it.
 
 ---
 
@@ -225,7 +226,7 @@ python -m pytest tests/performance/ -q    # Performance tests
 | Metric | Value |
 |--------|-------|
 | Collected | 456 — default 420 passed / 36 skipped; `--runperf` 455 passed / 1 skipped |
-| Line coverage | 99% (`pytest --cov=src`; 1,397 stmts / 12 missed) |
+| Line coverage | 99% (`pytest --cov=src`; 12 missed of 1,397 stmts on Python 3.14, of 1,477 on 3.12) |
 
 Tests are organized into unit, integration, race-condition, and performance
 suites under `tests/`.
