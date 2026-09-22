@@ -54,7 +54,7 @@ pytest tests/race/ -v
 pytest tests/race/ -v --tb=long
 
 # Increase iterations for thoroughness
-pytest tests/race/ -v --count=10
+pytest tests/race/ -v --count=10   # requires pytest-repeat (not in requirements.txt)
 ```
 
 ## Safety Guarantees

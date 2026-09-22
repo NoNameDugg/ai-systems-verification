@@ -14,46 +14,45 @@ Shared test fixtures and mock objects.
 ### Directional Fixtures
 
 ```python
-from tests.fixtures.directional_fixtures import (
-    MAJOR_PAIRS,
-    CROSS_PAIRS,
-    SAMPLE_POSITIONS,
-    create_test_signal
-)
+from tests.fixtures.directional_fixtures import KNOWN_CURRENCIES, SUPPORTED_PAIRS
 
-def test_with_fixture():
-    signal = create_test_signal("EUR_USD", "LONG")
-    # Use signal in test
+def test_pair_is_supported():
+    assert "EUR_USD" in SUPPORTED_PAIRS
+    assert "EUR" in KNOWN_CURRENCIES
 ```
 
 ### Mock Providers
 
 ```python
 from tests.fixtures.mock_providers import (
+    FailingPositionProvider,
     MockPositionProvider,
-    FailingProvider,
-    SlowProvider
+    SlowPositionProvider,
 )
 
 def test_with_mock():
-    provider = MockPositionProvider(positions=[...])
-    gate = CorrelationGate(config, provider)
+    provider = MockPositionProvider(positions=[])
+    assert provider.fetch_positions() == []
+    assert provider.is_available()
+
+def test_failure_paths():
+    failing = FailingPositionProvider()                        # always raises
+    slow = SlowPositionProvider(delay_seconds=0.01, positions=[])  # artificial delay
 ```
 
 ## Available Fixtures
 
-### Position Data
-- `SAMPLE_POSITIONS`: Standard test positions
-- `EMPTY_POSITIONS`: Empty position list
-- `MAX_EXPOSURE_POSITIONS`: At-limit positions
+### `directional_fixtures.py`
+- `KNOWN_CURRENCIES`: the currency codes used by the directional-mapping tests
+- `SUPPORTED_PAIRS`: the instrument pairs used by the directional-mapping tests
+- `PERFORMANCE_ITERATIONS`, `PERFORMANCE_TARGET_MS`, `BATCH_PERFORMANCE_SIZE`,
+  `BATCH_PERFORMANCE_TARGET_MS`: budgets for the parse-performance tests
 
-### Providers
-- `MockPositionProvider`: Configurable mock
-- `FailingProvider`: Always fails
-- `SlowProvider`: Configurable delay
-- `RandomFailureProvider`: Random failures
-
-### Signals
-- `create_test_signal()`: Factory function
-- `SAMPLE_SIGNALS`: Pre-built signals
-
+### `mock_providers.py`
+- `MockPositionProvider(positions)`: returns pre-configured positions
+- `FailingPositionProvider(exception=None)`: always raises
+- `SlowPositionProvider(delay_seconds, positions)`: introduces an artificial delay
+- `TimeoutPositionProvider(timeout_seconds)`: sleeps longer than the timeout
+- `ExceptionPositionProvider(exception)`: raises a specific exception type
+- `StatefulPositionProvider()`: state can be changed during a test
+- `MockPriceProvider(prices=None)`, `MockPriceSnapshot(instrument, mid_price, age_ms=0)`: price fixtures

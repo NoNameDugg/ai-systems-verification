@@ -103,8 +103,8 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # 4. Rust components — flight-recorder + market-data adapter.
-  #    Linux runner resolves the local Windows WDAC doctest-exec restriction,
-  #    so the FULL test set (incl. doctests) runs here.
+  #    Linux runner resolves the local Windows WDAC doctest-exec restriction: blackbox runs its
+  #    FULL set (incl. doctests); flash runs --tests --lib (its doctests are not run in CI).
   # ---------------------------------------------------------------------------
   rust:
     runs-on: ubuntu-latest

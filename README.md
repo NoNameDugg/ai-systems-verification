@@ -139,5 +139,6 @@ cd blackbox && cargo test
 cd flash    && cargo test
 ```
 
-The [CI workflow](.github/workflows/ci.yml) runs exactly this — on a clean Linux runner, across
-Python 3.12 and 3.14 — so the numbers it reports are the numbers you'll get.
+The [CI workflow](.github/workflows/ci.yml) runs these same commands (flash with `--tests --lib`, i.e.
+without doctests) on a clean Linux runner, across Python 3.12 and 3.14 — so the numbers it reports are
+the numbers you'll get.

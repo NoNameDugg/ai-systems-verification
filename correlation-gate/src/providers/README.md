@@ -29,11 +29,11 @@ Production provider that fetches positions from OANDA REST API.
 
 **Configuration:**
 ```python
+from src.providers import OandaConfig, OandaPositionProvider
+
 provider = OandaPositionProvider(
-    account_id="your_account",
-    api_token="your_token",
-    api_url="https://api-fxpractice.oanda.com",
-    cache_ttl_seconds=5
+    OandaConfig(account_id="your_account", api_token="your_token", environment="practice"),
+    cache_ttl_seconds=5,
 )
 ```
 
@@ -48,10 +48,25 @@ In-memory provider for testing and backtesting.
 
 **Usage:**
 ```python
-provider = SimulatorPositionProvider()
-provider.add_position(Position("EUR_USD", "LONG", 100000))
-provider.remove_position("position_id")
-provider.clear_positions()
+from datetime import datetime, timezone
+from decimal import Decimal
+
+from src.providers import InMemoryPortfolioAccessor, SimulatorPosition, SimulatorPositionProvider
+
+# The provider reads positions through a PortfolioAccessor; the in-memory one is for tests.
+accessor = InMemoryPortfolioAccessor()
+provider = SimulatorPositionProvider(accessor)
+accessor.add_position(
+    SimulatorPosition(
+        position_id="pos_001",
+        instrument="EUR_USD",
+        direction="LONG",
+        units=100000,
+        entry_price=Decimal("1.0850"),
+        entry_time=datetime.now(timezone.utc),
+    )
+)
+accessor.remove_position("pos_001")
 ```
 
 ### `FallbackPositionProvider`
@@ -65,10 +80,9 @@ Automatic failover between primary and secondary providers.
 
 **Usage:**
 ```python
-fallback = FallbackPositionProvider(
-    primary=oanda_provider,
-    secondary=simulator_provider
-)
+from src.providers import FallbackPositionProvider
+
+fallback = FallbackPositionProvider(primary=oanda_provider, fallback=simulator_provider)
 ```
 
 ## Support Components
@@ -95,16 +109,21 @@ Plugin system for provider registration.
 Implement the `PositionProvider` abstract base class:
 
 ```python
-from src.providers.base import PositionProvider
+from datetime import datetime
+from typing import List, Optional
+
 from src.models import Position
+from src.providers.base import PositionProvider
 
 class MyCustomProvider(PositionProvider):
     def fetch_positions(self) -> List[Position]:
-        # Your implementation
-        return positions
+        return []  # your implementation
 
     def is_available(self) -> bool:
         return True
+
+    def get_last_fetch_time(self) -> Optional[datetime]:
+        return None  # all three abstract methods must be implemented
 ```
 
 ## Thread Safety

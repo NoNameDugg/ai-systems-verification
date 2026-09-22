@@ -77,7 +77,7 @@ pytest tests/unit/ -v
 pytest tests/integration/ -v
 
 # Performance benchmarks
-pytest tests/performance/ -v --benchmark-enable
+pytest tests/performance/ -v --benchmark-enable   # requires pytest-benchmark (not in requirements.txt)
 
 # Race condition tests
 pytest tests/race/ -v
@@ -85,7 +85,7 @@ pytest tests/race/ -v
 
 ### Parallel Execution
 ```bash
-pytest tests/ -n auto  # Requires pytest-xdist
+pytest tests/ -n auto  # requires pytest-xdist (not in requirements.txt)
 ```
 
 ## Test Fixtures

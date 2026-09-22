@@ -144,46 +144,9 @@ correlation-gate/
 │   ├── benchmarks/             # Additional benchmarks
 │   └── fixtures/               # Test fixtures
 │
-├── config/                      # Configuration files
-│   ├── README.md
-│   └── gate_config.example.yaml
-│
-├── docs/                        # Documentation (6,313+ lines)
-│   ├── README.md               # Documentation index
-│   ├── PLANNING.md             # Master project plan
-│   ├── PROGRESS.md             # Progress tracker
-│   ├── STANDARDS.md            # Coding standards
-│   ├── COMPONENT_REGISTRY.md   # Component documentation
-│   │
-│   ├── api/                    # API documentation
-│   │   ├── API_REFERENCE.md
-│   │   ├── ASTRA_FOREX_INTEGRATION_GUIDE.md
-│   │   ├── MARKETSIM_INTEGRATION_GUIDE.md
-│   │   ├── PHASE2_PROVIDERS_API.md
-│   │   ├── PHASE3_SECURITY_API.md
-│   │   └── *_TROUBLESHOOTING.md
-│   │
-│   ├── architecture/           # Technical specifications
-│   │   ├── LOGIC_CORE_SPEC.md
-│   │   ├── PHASE2_DATA_INTEGRATION_SPEC.md
-│   │   └── PHASE3_SECURITY_HARDENING_SPEC.md
-│   │
-│   ├── guides/                 # Implementation guides
-│   │   ├── LOGIC_CORE_INTEGRATION.md
-│   │   └── TROUBLESHOOTING.md
-│   │
-│   └── artifacts/              # HTML documentation
-│       ├── PROJECT_SUMMARY.html
-│       └── USER_HANDBOOK.html
-│
-├── quality_review/              # Quality review documents
-│   ├── Phase_1/
-│   ├── Phase_2/
-│   ├── Phase_3/
-│   └── Phase_4/
-│
-└── htmlcov/                     # Code coverage report
-    └── index.html
+└── config/                      # Configuration files
+    ├── README.md
+    └── gate_config.example.yaml
 ```
 
 ---
@@ -338,25 +301,15 @@ Benchmark scaffolding lives under `tests/performance/` and `tests/benchmarks/`.
 
 ## Contributing
 
-1. Follow the coding standards in [STANDARDS.md](docs/STANDARDS.md)
-2. Write tests first
-3. Keep coverage high for new code (99% measured; see Test Statistics)
-4. Update documentation for API changes
+1. Write tests first; match the existing style
+2. Keep coverage high for new code (99% measured; see Test Statistics)
+3. Update documentation for API changes
 
 ---
 
 ## License
 
-No license is granted at this time. This repository is shared as a portfolio /
-work sample; please contact the author before reusing the code.
-
----
-
-## Support
-
-- **Documentation**: [docs/](docs/)
-- **Troubleshooting**: [docs/api/PHASE2_TROUBLESHOOTING.md](docs/api/PHASE2_TROUBLESHOOTING.md)
-- **User Handbook**: [docs/artifacts/USER_HANDBOOK.html](docs/artifacts/USER_HANDBOOK.html)
+MIT — see the repository's top-level [LICENSE](../LICENSE).
 
 ---
 

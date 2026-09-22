@@ -74,12 +74,12 @@ All public methods in this package are **thread-safe**. The gate uses `RLock` fo
 ## Usage
 
 ```python
-from src import CorrelationGate, GateConfig
-from src.providers import SimulatorPositionProvider
+from src import CorrelationGate, GateConfig, TradeSignal
+from src.providers import InMemoryPositionProvider
 
 # Create and initialize
 config = GateConfig(soft_warning_count=2, hard_block_count=3)
-provider = SimulatorPositionProvider()
+provider = InMemoryPositionProvider()
 gate = CorrelationGate(config, provider)
 gate.initialize()
 
