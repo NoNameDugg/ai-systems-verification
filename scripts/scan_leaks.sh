@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Leak / licensed-string scanner — a required pre-push gate, co-equal to gitleaks (per S2 charter-review B6).
+# Leak / licensed-string scanner — a required pre-push gate, co-equal to gitleaks.
 # gitleaks catches key-shaped secrets; this catches the NON-key-shaped leaks it misses:
 # host absolute paths, licensed-data identifiers, the copyrighted book, the local dev DSN.
 # Exits non-zero (fails CI) if any forbidden string appears anywhere in the tree.

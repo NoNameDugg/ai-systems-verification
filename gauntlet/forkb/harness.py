@@ -183,12 +183,13 @@ def pead_book(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW") -> dict:
 
 
 def nsi_book(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW", cadence: str = "annual_june") -> dict:
-    """BC net-share-issuance book (DEC-333): LONG low-NSI (buyback) / SHORT high-NSI (issuance) quintiles.
+    """Net-share-issuance book: LONG the low-issuance (buyback) quintile / SHORT the high-issuance quintile.
 
-    cadence='annual_june' (DIAGNOSTIC — ~annual independent draws, un-gateable) or 'qoq_nonoverlap' (GATED —
-    non-overlapping 63-td quarterly cohorts on the QoQ NSI → genuinely independent blocks). Emits the SAME
-    gate-consumed keys as pead_book PLUS `active_mask` (cohort_count>0) so M2's block count is honest (active
-    days only, not the zero-filled flats that would spuriously clear the 60-block floor — S2 #3 / D-HARD B).
+    cadence='annual_june' (DIAGNOSTIC: roughly annual independent draws, too few to clear the block floor, so
+    un-gateable) or 'qoq_nonoverlap' (GATED: non-overlapping 63-trading-day quarterly cohorts on the
+    quarter-over-quarter NSI, which are genuinely independent blocks). Emits the SAME gate-consumed keys as
+    pead_book PLUS `active_mask` (cohort_count>0) so the M2 power gate counts only active days, not the
+    zero-filled flat days that would spuriously clear the 60-block floor.
     Direction is inverted vs pead_book (low-NSI long); everything else reuses tr_panel/liquid_panel/_cap_weights.
     """
     panel = tr_panel(snap, cfg)
@@ -287,10 +288,13 @@ def _net_turnover(w_agg: dict, cohort_count, dates) -> pd.Series:
 
 
 def profitability_book(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW") -> dict:
-    """BD gross-profitability book (DEC-338): LONG high gp/assets / SHORT low quintile, rolling 21-td rebalance + 63-td
-    hold. ★ PIT: ranks on the gp/assets char as-of D−1 (`dates[fi − rank_datekey_lag_td]`) — `pit_fundamental_chars`
-    broadcasts to datekey ≤ D, the D−1 read is what makes it PIT. Emits `active_mask` + **NET** `turnover_daily` (§5.1)
-    + `turnover_daily_gross` (the old per-cohort full-leg accounting, REPORTED) + all gate-consumed keys."""
+    """Gross-profitability book: LONG the high gross-profit/assets quintile / SHORT the low quintile, rolling
+    21-trading-day rebalance and 63-trading-day hold.
+
+    Point-in-time: ranks on the gp/assets characteristic as of D-1 (`dates[fi - rank_datekey_lag_td]`);
+    `pit_fundamental_chars` broadcasts to datekey <= D, and reading at D-1 is what makes the rank point-in-time.
+    Emits `active_mask`, NET `turnover_daily` (what the cost model consumes), `turnover_daily_gross` (the old
+    per-cohort full-leg accounting, reported only), and every gate-consumed key."""
     panel = tr_panel(snap, cfg)
     dates = panel.index
     liq = liquid_panel(snap, cfg).reindex(index=dates, columns=panel.columns).fillna(False)

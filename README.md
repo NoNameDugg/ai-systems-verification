@@ -131,8 +131,10 @@ weakest exhibit, so the shipped set is deliberately small.
 
 ```bash
 # Python components (per package):
-cd gauntlet/forkb && pip install -r requirements.txt && python -m pytest
-cd correlation-gate && pip install -r requirements.txt && python -m pytest
+cd gauntlet/forkb        && pip install -r requirements.txt && python -m pytest   # ~11-15 min
+cd gauntlet/rank_ic_gate && pip install -r requirements.txt && python -m pytest
+cd gauntlet/ml_xsect     && pip install -r requirements.txt && python -m pytest
+cd correlation-gate      && pip install -r requirements.txt && python -m pytest
 
 # Rust components:
 cd blackbox && cargo test

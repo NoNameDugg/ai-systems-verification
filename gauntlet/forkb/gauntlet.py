@@ -45,10 +45,15 @@ def _block_sharpe(block_returns: np.ndarray) -> float:
 
 def _verdict_terminal(full_series_pass: bool, m2_power: bool, oos_conf: bool, oos_indeterminate: bool,
                       label: str, book: str, cost_mode) -> str:
-    """The charter §4/§7 terminal verdict table (pure + testable). ★ DEC-340 carry-forward (S2): a KNOWN-FACTOR book
-    (nsi≈CMA, prof=RMW) that the interp residual mislabels NOVEL is a CONSTRUCTION ARTIFACT (BD: VW-capped-quintile book
-    vs EW-tercile factor → near-zero rmw_beta + negative explained_frac), NOT a genuine discovery — it must NOT be
-    crowned a bare DEPLOY; route it to PROMISING-PENDING-INVESTIGATION (reconcile the construction before any deploy)."""
+    """The terminal verdict table (pure and testable).
+
+    One carry-forward rule: a book built on a KNOWN factor (the net-share-issuance book tracks the
+    investment factor CMA; the profitability book is the profitability factor RMW) that the
+    interpretation residual mislabels as NOVEL is a construction artifact, not a genuine discovery:
+    a value-weighted, capped-quintile book regressed on an equal-weighted tercile factor gives a
+    near-zero factor beta and a negative explained fraction. Such a book must NOT be crowned a bare
+    DEPLOY; it is routed to PROMISING-PENDING-INVESTIGATION so the construction mismatch is
+    reconciled before any deployment."""
     if not full_series_pass:
         return "NULL"
     if not m2_power:                                          # econ+sig+psr+perm+p3 pass but underpowered (active n<60)
