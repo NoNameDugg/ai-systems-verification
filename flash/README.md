@@ -3,7 +3,7 @@
 **Ultra-Low Latency Market Data Adapter for High-Frequency Trading**
 
 [![Status](https://img.shields.io/badge/status-research%2Fportfolio%20prototype-yellow.svg)](#status)
-[![Rust](https://img.shields.io/badge/rust-1.92%2B-orange.svg)](https://www.rust-lang.org/)
+[![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ---
@@ -14,7 +14,7 @@ Flash is a high-frequency market data adapter built in Rust. It implements an OA
 
 ### Status
 
-**Status:** Research / portfolio prototype (last updated 2026-01-21)
+**Status:** Research / portfolio prototype
 
 This is a personal research and portfolio project. It is not deployed in a regulated production environment; "shadow mode" / "cutover" below refer to the author's own local validation against the prior Python implementation, not a third-party-audited production rollout.
 
@@ -26,6 +26,11 @@ This is a personal research and portfolio project. It is not deployed in a regul
 | Earlier Python prototype | **DEPRECATED** |
 
 > **Note:** An earlier Python prototype of this adapter has been deprecated and replaced by this Rust implementation.
+
+### Known gaps
+
+- The optional `blackbox` flight-recorder integration records ingress and internal events; the egress tap point is not wired.
+- The Python stream binding surfaces delta events but does not yet surface order-book snapshots.
 
 ### Performance vs Python Shim
 
@@ -117,6 +122,7 @@ spread_bps = book.spread_bps
 - **Thread-Safe:** parking_lot RwLock for concurrent access
 - **Redis Streams:** High-throughput data distribution
 - **Python Bindings:** Zero-copy PyO3 integration
+- **Flight-Recorder Tap (optional `blackbox` feature):** ingress and internal tap points into the `blackbox/` journal; the egress tap is not wired yet
 - **Well-Tested:** 1,221 tests pass in CI (`cargo test --tests --lib`, 37 ignored); 1,231 with `--features blackbox`; plus chaos tests and an operations runbook
 - **Prometheus Metrics:** Built-in observability
 

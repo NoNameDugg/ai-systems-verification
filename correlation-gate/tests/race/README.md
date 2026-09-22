@@ -4,12 +4,12 @@ Tests for thread safety, concurrency, and chaos engineering.
 
 ## Files
 
-| File | Tests | Focus |
-|------|-------|-------|
-| `harness.py` | - | Test infrastructure |
-| `test_concurrent.py` | 9 | Concurrent serialization |
-| `test_high_frequency.py` | 9 | High-frequency stress |
-| `test_chaos.py` | 10 | Chaos engineering |
+| File | Focus |
+| ------ | ------- |
+| `harness.py` | Test infrastructure |
+| `test_concurrent.py` | Concurrent serialization |
+| `test_high_frequency.py` | High-frequency stress |
+| `test_chaos.py` | Chaos engineering |
 
 ## Test Harness
 

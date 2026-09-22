@@ -4,15 +4,15 @@ Unit tests for position provider implementations.
 
 ## Test Files
 
-| File | Tests | Coverage |
-|------|-------|----------|
-| `test_oanda_provider.py` | 29 | OANDA API integration |
-| `test_simulator_provider.py` | 22 | In-memory provider |
-| `test_fallback_provider.py` | 15 | Failover logic |
-| `test_cache.py` | 12 | Position cache |
-| `test_factory.py` | 10 | Provider factory |
-| `test_health.py` | 14 | Health monitoring |
-| `test_coverage_supplement.py` | 20+ | Edge cases |
+| File | Coverage |
+| ------ | ---------- |
+| `test_oanda_provider.py` | OANDA API integration |
+| `test_simulator_provider.py` | In-memory provider |
+| `test_fallback_provider.py` | Failover logic |
+| `test_cache.py` | Position cache |
+| `test_factory.py` | Provider factory |
+| `test_health.py` | Health monitoring |
+| `test_coverage_supplement.py` | Edge cases |
 
 ## Key Test Scenarios
 

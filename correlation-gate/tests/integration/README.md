@@ -4,11 +4,11 @@ Tests for component interaction and end-to-end scenarios.
 
 ## Test Files
 
-| File | Tests | Focus |
-|------|-------|-------|
-| `test_integration.py` | 16 | Core gate integration |
-| `test_provider_integration.py` | 11 | Provider stack |
-| `test_security_integration.py` | 12 | Security components |
+| File | Focus |
+| ------ | ------- |
+| `test_integration.py` | Core gate integration |
+| `test_provider_integration.py` | Provider stack |
+| `test_security_integration.py` | Security components |
 
 ## Key Scenarios
 

@@ -255,7 +255,7 @@ See [config/gate_config.example.yaml](config/gate_config.example.yaml) for a com
 
 ## Project Phases
 
-The project was completed in 4 phases following the TDI 9-Step Methodology:
+The project was completed in 4 phases following a tests-first methodology (see [METHODOLOGY.md](../METHODOLOGY.md)):
 
 | Phase | Name | Status | Components |
 |-------|------|--------|------------|

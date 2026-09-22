@@ -11,14 +11,18 @@ BlackBox is a **deterministic recording and replay system** for high-frequency t
 
 ## Features
 
-- **Zero-Overhead Recording** - NullTap adds ~1.2ns overhead; JournalTap adds ~110ns
+- **Zero-Overhead Recording** - NullTap adds ~1.2ns overhead; JournalTap adds ~110ns (author-measured; see Performance)
 - **Deterministic Replay** - Bit-for-bit reproducible execution
 - **Clock Control** - Pause, step-through, fast-forward, and warp-speed modes
 - **State Verification** - SHA-256 checkpoint comparison during replay
-- **Self-Describing Format** - Embedded SBE schema ensures 10+ year readability
+- **Self-Describing Format** - Embedded SBE schema (self-describing); generic decoding of unknown schema versions is not implemented
 - **Feature-Complete (portfolio project)** - Multi-platform support, 979 tests (as reported by CI; a further 18 doctests are `ignore`d)
 
 ## Performance
+
+> The "Actual" column holds the author's own measurements on a development machine, recorded during
+> the project and not re-measured or independently verified for this repository. Treat them as
+> order-of-magnitude figures; re-run `cargo bench` (see Building) to reproduce on your own hardware.
 
 | Metric | Target | Actual |
 |--------|--------|--------|

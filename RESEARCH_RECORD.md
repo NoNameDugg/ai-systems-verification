@@ -1,7 +1,7 @@
 # Research Record — A Map of What Didn't Work
 
-This is the honest output of a multi-year systematic-trading research program: a record of roughly
-**two dozen distinct hypotheses tested for a tradable edge, almost all of which returned null.**
+This is the honest output of a multi-year systematic-trading research program: a record of
+**29 distinct hypotheses tested for a tradable edge, almost all of which returned null.**
 
 I lead with that because it is the point. The skill this repository demonstrates is not "found a
 money-printer" — it is the discipline to test an idea rigorously, to attack my own promising results
@@ -13,7 +13,7 @@ produced it; none was transcribed from memory.
 
 ## The conclusion, stated precisely
 
-After ~26 threads, the frontier was closed. The exact scope of that conclusion matters, and I keep it
+After 29 threads, the frontier was closed. The exact scope of that conclusion matters, and I keep it
 honest:
 
 > **No edge deployable at small (sub-$1k) capital, as of mid-2026, by test.**
@@ -65,7 +65,7 @@ stressed Calmar, because the added instruments weren't independent — the effec
 ~3.8 bets).
 
 **3. The live ground truth.**
-The strategy that actually ran on a small real-money account (~$230) told the same story directly: a
+The strategy that actually ran on a small real-money account (under $1,000) told the same story directly: a
 realized **33% win rate, 72% of exits via the loss-cutting "smart exit," and 0.1% take-profit hits.**
 The entries weren't catching alpha; the exit logic was merely cutting losses to break-even. The very
 first backtest confirmed it: the base strategy's entry timing had **no detectable edge versus random**

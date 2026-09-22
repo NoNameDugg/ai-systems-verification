@@ -1348,7 +1348,7 @@ let schema_hash = crc32fast::hash(schema_xml.as_bytes());
 
 ### Process Insights
 
-1. **TDI Methodology** - Test-Driven Infrastructure ensures every component is verified before integration.
+1. **TDI Methodology** - Test-Driven Implementation ensures every component is verified before integration.
 
 2. **Phase-Based Development** - Breaking the project into clear phases with defined deliverables improved tracking and quality.
 

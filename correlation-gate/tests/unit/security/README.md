@@ -4,10 +4,10 @@ Unit tests for security-critical components.
 
 ## Test Files
 
-| File | Tests | Coverage |
-|------|-------|----------|
-| `test_atomic.py` | 27 | Atomic operations |
-| `test_audit.py` | 28+ | Audit logging |
+| File | Coverage |
+| ------ | ---------- |
+| `test_atomic.py` | Atomic operations |
+| `test_audit.py` | Audit logging |
 
 ## Key Test Scenarios
 

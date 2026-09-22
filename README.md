@@ -2,7 +2,7 @@
 
 **I build the systems that prove whether things actually work.**
 
-This repository is a working portfolio of tested, production-grade components and the verification
+This repository is a working portfolio of tested, CI-verified components extracted from a live system, and the verification
 discipline around them. They were extracted from a complete, multi-component software platform that I
 designed, built, and instrumented solo — by directing AI coding agents — and then, once the evidence
 showed it did not do what it needed to do, deliberately shut down.
@@ -43,7 +43,7 @@ If you read three things, read these — they are the argument this repository m
 - **[`METHODOLOGY.md`](METHODOLOGY.md)** — how I decide whether a system works: three-role adversarial
   review, test-driven implementation, "green tests are not a working system," and falsification over
   confirmation.
-- **[`RESEARCH_RECORD.md`](RESEARCH_RECORD.md)** — how I test and report honestly: the map of ~26
+- **[`RESEARCH_RECORD.md`](RESEARCH_RECORD.md)** — how I test and report honestly: the map of 29
   hypotheses tested, almost all of which returned null, with every number read back from source.
 - **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — the live system these components came from, how the pieces
   fit together, and why I switched it off.
@@ -75,16 +75,17 @@ the tooling that decides whether a model's result is real.
 **Demonstrates: model evaluation, statistical rigor, leakage detection.**
 
 ### `blackbox/` — a deterministic flight-recorder
-A lock-free Rust journaling engine with microsecond timestamps and SHA-256-verified replay, so any live
-session can be reconstructed exactly. This is data infrastructure, not AI — and it is what makes the
+A Rust journaling engine whose hot path hands records to a background memory-mapped writer through a
+lock-free SPSC ring buffer, with microsecond timestamps and SHA-256-verified replay, so any live session
+can be reconstructed exactly. This is data infrastructure, not AI — and it is what makes the
 rest verifiable: you cannot verify a system you cannot replay.
-**Demonstrates: Rust systems programming, lock-free concurrency, deterministic replay.**
+**Demonstrates: Rust systems programming, lock-free SPSC buffering, deterministic replay.**
 
 ### `flash/` — an async real-time data adapter
 A zero-allocation async Rust engine that ingests and normalizes a live streaming feed — a broker's
 (OANDA) Level-2 price data — with a PyO3 Python binding. It is the low-latency front door of the data
-path. It optionally taps into the `blackbox/` flight-recorder (the `blackbox` feature) for
-deterministic replay — two independently tested components in this repo integrating through a clean
+path. It optionally taps into the `blackbox/` flight-recorder (the `blackbox` feature; ingress and
+internal tap points) for deterministic replay — two independently tested components in this repo integrating through a clean
 seam.
 **Demonstrates: async Rust, high-throughput stream processing, FFI.**
 
@@ -124,6 +125,7 @@ weakest exhibit, so the shipped set is deliberately small.
   point of this repository is how the work was verified, not who typed it.
 - **Honest framing throughout.** Every claim here is meant to match the code; if you find one that
   doesn't, that's a bug and I want to know.
+- **A word you will see:** ASTRA was the platform's internal name; it survives in package and topic names.
 
 ---
 

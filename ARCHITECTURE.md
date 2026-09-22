@@ -86,9 +86,9 @@ load-bearing, reusable pieces of that path — each one self-contained, tested, 
   thread-safe semaphore that prevents concurrent strategies from stacking correlated exposure. It
   fails *closed* — if it cannot prove a trade is safe, it rejects it. (456 tests.)
 
-- **`blackbox/` — the flight-recorder.** The capture layer: a deterministic, lock-free Rust
-  journaling engine with microsecond timestamps and SHA-256-verified replay, so any live session can
-  be reconstructed exactly. You cannot verify a system you cannot replay.
+- **`blackbox/` — the flight-recorder.** The capture layer: a deterministic Rust
+  journaling engine (lock-free SPSC hand-off to a background writer) with microsecond timestamps and
+  SHA-256-verified replay, so any live session can be reconstructed exactly. You cannot verify a system you cannot replay.
 
 - **`gauntlet/` — the falsification apparatus.** The offline validation core: it takes a candidate
   signal and tries to *kill* it — testing for look-ahead bias, overfitting, and statistical fragility,

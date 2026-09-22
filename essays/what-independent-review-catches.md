@@ -82,5 +82,4 @@ because the builder's mental model *is* the thing being tested, and you cannot i
 your own assumptions. Catching them needed a second pass that was structurally adversarial: separate,
 skeptical by mandate, and required to cite source rather than agree.
 
-That is verification work. It is what evaluation and red-team roles are, and it is the discipline
-this whole repository is built to demonstrate.
+That is verification work, and it is the discipline this whole repository is built to demonstrate.
