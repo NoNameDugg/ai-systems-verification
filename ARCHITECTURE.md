@@ -114,7 +114,8 @@ truth was measurable — and then it was measured.
 
 ## 5. The kill-decision
 
-The verdict from all of that instrumentation, confirmed by an independent review pass, was that the
+The verdict from all of that instrumentation, confirmed by an independent review pass (a separate
+AI session with no shared context — see `METHODOLOGY.md` §1), was that the
 strategy had **no durable, deployable edge** after real costs. The realized performance was
 consistent with no edge, and an exhaustive search across many independent hypotheses (documented in
 `RESEARCH_RECORD.md`) failed to surface one.

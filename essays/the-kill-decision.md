@@ -50,7 +50,8 @@ The danger in a search that long is that you stop trusting your own nulls. So I 
 adversarial audit of my *own* negative results — its explicit job was to find a shared bug that could
 be manufacturing fake nulls. It didn't find one. The kills reproduced at their frozen sources, spread
 across eight unrelated failure modes, with zero false-nulls. The closure was confirmed four
-independent times at ~0.93 confidence.
+independent times at ~0.93 confidence — "independent" meaning separate AI review sessions with no
+shared context, not outside reviewers (see `METHODOLOGY.md` §1).
 
 And I kept the conclusion precise, because precision is the difference between honesty and despair:
 **no edge deployable at small capital, as of mid-2026, by test.** Not "markets are efficient and alpha

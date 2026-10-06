@@ -113,16 +113,20 @@ weakest exhibit, so the shipped set is deliberately small.
 
 - **The platform's central question was answered "no," by test.** It was built to find out whether a
   durable, deployable edge existed in its market at small capital. It did not, as of mid-2026, and four
-  independent audits confirmed that conclusion. This is not a profitable trading system, and it is not
-  presented as one. (See `RESEARCH_RECORD.md`.)
+  independent audits confirmed that conclusion. "Independent" here means a separate AI-agent session
+  with no shared context, instructed to verify at source and find what breaks — not an outside human
+  reviewer. Nobody outside the author has audited this repository; that is why every claim is meant
+  to be checkable from the code. This is not a profitable trading system, and it is not presented as
+  one. (See `RESEARCH_RECORD.md`.)
 - **Nothing here runs against real money.** The live system was decommissioned; its broker credential
   was revoked.
 - **No secrets, no licensed data.** This is a fresh-history repository (the original carried
   credentials and licensed data and is not published). Two independent scanners — `gitleaks` plus a
   custom licensed-string / host-path scanner (`scripts/scan_leaks.sh`) — gate every push.
 - **Built with AI coding agents, verified by me.** The code was produced largely by AI agents working
-  under my direction, with an independent review pass on every change. I say so plainly because the
-  point of this repository is how the work was verified, not who typed it.
+  under my direction, with a separate, adversarial AI review session on every change (the sense of
+  "independent" defined above). I say so plainly because the point of this repository is how the work
+  was verified, not who typed it.
 - **Honest framing throughout.** Every claim here is meant to match the code; if you find one that
   doesn't, that's a bug and I want to know.
 - **A word you will see:** ASTRA was the platform's internal name; it survives in package and topic names.

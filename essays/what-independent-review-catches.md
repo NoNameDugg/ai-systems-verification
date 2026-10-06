@@ -2,7 +2,9 @@
 
 A claim I make in this repository is that an independent, adversarial review pass — one whose only
 job is to *find what's wrong*, with a standing instruction to verify at source and never
-rubber-stamp — catches things the builder cannot. That's easy to assert. Here are four cases where it
+rubber-stamp — catches things the builder cannot. "Independent" means what it means everywhere in
+this repository: a separately-prompted AI session with no shared context, run by me, not an outside
+reviewer (see `METHODOLOGY.md` §1). That's easy to assert. Here are four cases where it
 actually changed the answer. None of these are hypothetical; all came out of the research program
 behind this repo. I've kept the domain details generic on purpose — the lessons are what transfer.
 

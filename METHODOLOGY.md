@@ -14,7 +14,11 @@ confirmation**. The last one is why the centerpiece of this repo is a gauntlet t
 
 ## 1. Three independent roles: build, attack, decide
 
-Every non-trivial change moved through three separated roles. Critically, these are *adversarial*
+Every non-trivial change moved through three separated roles. The builder and reviewer roles are
+filled by separately-prompted AI sessions that share no context — the reviewer sees the builder's
+output, never its reasoning — and the arbiter is me, the author. The adversarial separation is by
+construction (no shared context), not by institution: nobody outside the author takes part, and
+"independent" in this repository never means outside review. Critically, the roles are *adversarial*
 to each other by design — not a rubber stamp.
 
 - **Builder** drafts the plan and writes the code. Produces a charter: scope, the exact files
