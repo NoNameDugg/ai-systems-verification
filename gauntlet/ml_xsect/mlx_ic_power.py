@@ -15,6 +15,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from mlx_config import MLXConfig
+
 
 def cross_sectional_ic(scores: pd.Series, fwd_ret: pd.Series, min_n: int = 50) -> float:
     """Spearman rank-IC between `scores` and `fwd_ret` across names at ONE rebalance (NaN if < min_n overlap)."""
@@ -26,8 +28,10 @@ def cross_sectional_ic(scores: pd.Series, fwd_ret: pd.Series, min_n: int = 50) -
     return float(df["s"].corr(df["r"], method="spearman"))
 
 
-def ic_series(scores_by_date: dict, fwd_by_date: dict, min_n: int = 50) -> pd.Series:
-    """{date → IC_t} over the rebalances present in BOTH dicts."""
+def ic_series(scores_by_date: dict, fwd_by_date: dict, min_n: int | None = None, cfg: MLXConfig | None = None) -> pd.Series:
+    """{date → IC_t} over the rebalances present in BOTH dicts. `min_n` defaults to `cfg.min_xsection`."""
+    cfg = cfg if cfg is not None else MLXConfig()
+    min_n = cfg.min_xsection if min_n is None else min_n
     out = {}
     for d, s in scores_by_date.items():
         r = fwd_by_date.get(d)
@@ -66,28 +70,43 @@ def _std(ic: pd.Series) -> float:
     return float(np.std(vals, ddof=1)) if vals.size >= 2 else float("nan")
 
 
-def mde_ic(ic: pd.Series, z_sum: float = 2.80) -> float:
-    """Minimum detectable mean rank-IC = z_sum · std(IC_t)/√T_eff."""
+def mde_ic(ic: pd.Series, z_sum: float | None = None, cfg: MLXConfig | None = None) -> float:
+    """Minimum detectable mean rank-IC = z_sum · std(IC_t)/√T_eff. `z_sum` defaults to `cfg.z_sum`."""
+    cfg = cfg if cfg is not None else MLXConfig()
+    z_sum = cfg.z_sum if z_sum is None else z_sum
     s, te = _std(ic), t_eff(ic)
     if not np.isfinite(s) or te <= 0:
         return float("nan")
     return float(z_sum * s / np.sqrt(te))
 
 
-def block_t(ic: pd.Series) -> dict:
-    """Analytic inference on mean({IC_t}). Returns mean, se (= std/√T_eff), t, ci_lo/ci_hi (95%), T, T_eff."""
+def block_t(ic: pd.Series, cfg: MLXConfig | None = None) -> dict:
+    """Analytic inference on mean({IC_t}). Returns mean, se (= std/√T_eff), t, ci_lo/ci_hi (at `cfg.block_t_crit`,
+    1.96 = 95%), T, T_eff, and `significant` (t >= block_t_crit)."""
+    cfg = cfg if cfg is not None else MLXConfig()
     vals = np.asarray(ic.dropna().values, dtype=float)
     T = vals.size
     m = float(np.mean(vals)) if T else float("nan")
     s, te = _std(ic), t_eff(ic)
     se = s / np.sqrt(te) if (np.isfinite(s) and te > 0) else float("nan")
     t = m / se if (np.isfinite(se) and se > 0) else float("nan")
-    half = 1.96 * se if np.isfinite(se) else float("nan")
-    return {"mean": m, "se": se, "t": t, "ci_lo": m - half, "ci_hi": m + half, "T": int(T), "T_eff": te}
+    half = cfg.block_t_crit * se if np.isfinite(se) else float("nan")
+    return {"mean": m, "se": se, "t": t, "ci_lo": m - half, "ci_hi": m + half, "T": int(T), "T_eff": te,
+            "significant": bool(np.isfinite(t) and t >= cfg.block_t_crit)}
 
 
-def power_verdict(ic: pd.Series, z_sum: float = 2.80, ceiling: float = 0.02) -> dict:
-    """POWERED iff MDE_meanIC ≤ ceiling (the 0.02 decision bar). A CLOSE-FRONTIER is honest only when POWERED."""
-    mde = mde_ic(ic, z_sum=z_sum)
+def power_verdict(ic: pd.Series, z_sum: float | None = None, ceiling: float | None = None,
+                  cfg: MLXConfig | None = None) -> dict:
+    """POWERED iff MDE_meanIC ≤ ceiling (`cfg.ic_power_ceiling`, the decision bar). A CLOSE-FRONTIER is honest only
+    when POWERED. Also labels the realized mean IC against the frozen bars: GLIMMER (mean ≥ `cfg.ic_glimmer_bar` with
+    ci_lo > 0) and STRONG (mean ≥ `cfg.ic_strong_bar` with ci_lo > 0)."""
+    cfg = cfg if cfg is not None else MLXConfig()
+    z_sum = cfg.z_sum if z_sum is None else z_sum
+    ceiling = cfg.ic_power_ceiling if ceiling is None else ceiling
+    mde = mde_ic(ic, z_sum=z_sum, cfg=cfg)
     powered = bool(np.isfinite(mde) and mde <= ceiling)
-    return {"mde_ic": mde, "ceiling": ceiling, "powered": powered}
+    bt = block_t(ic, cfg=cfg)
+    positive = bool(np.isfinite(bt["ci_lo"]) and bt["ci_lo"] > 0)
+    return {"mde_ic": mde, "ceiling": ceiling, "powered": powered, "mean_ic": bt["mean"], "ci_lo": bt["ci_lo"],
+            "glimmer": bool(positive and bt["mean"] >= cfg.ic_glimmer_bar),
+            "strong": bool(positive and bt["mean"] >= cfg.ic_strong_bar)}

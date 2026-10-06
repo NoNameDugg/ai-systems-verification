@@ -8,7 +8,7 @@ functions are pure consumers of an already-blocked array.
 The PSR gate is `carry_gate.psr_spell(block_series, SR*=0)` >= 0.95 — re-pinned from the
   daily `stats` PSR (which left a tunable T) to the eff-N-unit spell PSR. The block series IS the
   spell series here.
-DSR is REPORTED, not a gate (cfg.dsr_is_gate is False). dsr_report exposes the full
+DSR is REPORTED, not a gate. dsr_report exposes the full
   (dsr, sr, sr0) triple deflated by the strategy-grid Sharpes; no pass/fail is emitted.
 """
 from __future__ import annotations
@@ -34,7 +34,7 @@ def psr_gate(resid_block_returns: np.ndarray, cfg) -> dict:
 
 
 def dsr_report(block_returns: np.ndarray, grid_sharpes: list[float]) -> dict:
-    """Deflated Sharpe Ratio — REPORTED, not a gate (RT-E; cfg.dsr_is_gate is False).
+    """Deflated Sharpe Ratio — REPORTED, not a gate (RT-E).
 
     Deflates the block series' Sharpe by the expected-max Sharpe over the strategy-grid trial set
     (the grid Sharpes). Returns dict{dsr, sr, sr0} — the unpacked apparatus triple.

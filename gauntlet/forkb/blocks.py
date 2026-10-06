@@ -12,7 +12,7 @@ Residual autocorrelation: block independence is NOT exact — 63-td cohorts on a
   correction (cfg.block_nw_lag = 1) to the t — a small, well-defined BLOCK-level correction, NOT the
   nonexistent daily HAC. The same rho-rule applies to the ~56-block OOS-t (same cohort straddle).
 
-Block grid: anchored at the first deployable day (cfg.block_anchor) and the trailing partial block
+Block grid: anchored at the first deployable day and the trailing partial block
   is DROPPED (cfg.drop_trailing_partial_block).
 
 Pure-function library over the contract: depends ONLY on _schema + numpy/pandas. The std convention
@@ -34,7 +34,7 @@ def to_blocks(daily_returns: pd.Series, cfg: ForkBConfig) -> np.ndarray:
     """Aggregate a daily return series into NON-OVERLAPPING cfg.block_td (63-td) blocks.
 
     - block return = COMPOUNDED daily within the block: prod(1 + r) - 1 (NOT a sum; geometric).
-    - anchored at the FIRST day of the series (cfg.block_anchor = first_deployable_day_of_regime — RT-C):
+    - anchored at the FIRST day of the series (first deployable day of the regime — RT-C):
       block 0 = days [0:63], block 1 = days [63:126], ...
     - DROPS the trailing partial block (cfg.drop_trailing_partial_block — RT-C): only full
       cfg.block_td-length blocks are kept.

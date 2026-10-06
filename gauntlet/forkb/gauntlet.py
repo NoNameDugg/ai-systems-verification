@@ -23,6 +23,12 @@ import p3 as p3_mod
 import harness
 import dataclasses
 import fundamental_factors as ff_mod
+from deflation import holm_adjusted_pvalues
+
+_P3_REPORTED = ("calmar", "maxdd", "worst_episode", "sortino", "recovery_months", "recovery_censored",
+                "stressed_calmar", "stressed_maxdd", "stressed_worst_episode", "stressed_sortino",
+                "stressed_recovery_months", "stressed_recovery_censored",
+                "calmar_ok", "maxdd_ok", "worst_episode_ok", "sortino_ok", "recovery_ok")
 
 
 def _eff_n(name_daily: pd.DataFrame, labels_union: set) -> float:
@@ -213,7 +219,9 @@ def run_gauntlet(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW", perm_n
     out["PSR"] = psr
     out["perm_null"] = {"p": pn.get("p"), "pass": bool(pn.get("p", 1.0) <= cfg.perm_p_threshold)}
     out["eff_n"] = {"value": effn, "pass": bool(effn > cfg.effn_floor) if effn == effn else False}
-    out["P3"] = {"pass": bool(p3.get("passed")), **{k: p3.get(k) for k in ("calmar", "maxdd", "worst_episode", "sortino")}}
+    # P3 is GRADED on the stressed series: report the stressed metrics and the per-floor booleans alongside the
+    # unstressed ones, so a failing P3 names its cause (before v1.2 only the unstressed four were copied here).
+    out["P3"] = {"pass": bool(p3.get("passed")), **{k: p3.get(k) for k in _P3_REPORTED}}
 
     # ★ G.5: full_series_pass uses econ+sig (NOT the power floor) so an underpowered-but-real book routes to
     #   PROMISING-UNCONFIRMED, not NULL. The power floor (m2_power) gates DEPLOY in the verdict terminal below.
@@ -250,3 +258,31 @@ def run_gauntlet(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW", perm_n
     out["full_series_pass"] = full_series_pass
     out["underpowered"] = bool(not m2_power)
     return out
+
+
+def apply_family_correction(outs: list[dict], alpha: float) -> list[dict]:
+    """Holm step-down across the cells of ONE pre-registered family (the variants compared against each other).
+
+    Writes `perm_null.p_raw`, `perm_null.p_holm`, `perm_null.family_size`, re-gates `perm_null.pass` on the
+    CORRECTED p, and re-derives `full_series_pass` and `verdict`. A single cell is unchanged (Holm of one p is p).
+    Before v1.2 `deflation.holm_*` existed but no gauntlet path called it (external review 2026-10, finding #3).
+    """
+    raw = [float(o["perm_null"]["p"]) for o in outs]
+    adj = holm_adjusted_pvalues(raw)
+    for o, p_raw, p_holm in zip(outs, raw, adj):
+        pn = o["perm_null"]
+        pn["p_raw"], pn["p_holm"], pn["family_size"] = p_raw, float(p_holm), len(outs)
+        pn["pass"] = bool(p_holm <= alpha)
+        o["full_series_pass"] = bool(o["M2"]["econ_sig"] and o["PSR"].get("passed") and pn["pass"] and o["P3"]["pass"])
+        o["verdict"] = _verdict_terminal(o["full_series_pass"], not o["underpowered"], bool(o["OOS"].get("confirms")),
+                                         bool(o["OOS"].get("indeterminate")), o["interpretation"]["label"],
+                                         o["book"], o.get("cost_mode"))
+    return outs
+
+
+def run_gauntlet_family(snap: Snapshot, cfg: ForkBConfig, cells: list[dict], **common) -> list[dict]:
+    """Run every cell of a family through `run_gauntlet` (cell kwargs override `common`) and Holm-correct the
+    permutation-null p-values across the family at `cfg.perm_p_threshold`. Returns the per-cell result dicts in
+    input order, each carrying `perm_null.p_holm` and a verdict gated on the corrected p."""
+    outs = [run_gauntlet(snap, cfg, **{**common, **cell}) for cell in cells]
+    return apply_family_correction(outs, cfg.perm_p_threshold)

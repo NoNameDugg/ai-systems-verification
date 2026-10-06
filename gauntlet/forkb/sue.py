@@ -83,7 +83,7 @@ def compute_sue(snap: Snapshot, cfg: ForkBConfig) -> pd.DataFrame:
 
         rp = g["reportperiod"].to_numpy()
         dk = g["datekey"].to_numpy()
-        eps = g["epsdil"].to_numpy(dtype=float)
+        eps = g[cfg.eps_field].to_numpy(dtype=float)
         fq = g["fq"].to_numpy()
         dropped = g["dropped"].to_numpy()
 

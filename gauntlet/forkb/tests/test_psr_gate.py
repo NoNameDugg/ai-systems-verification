@@ -70,9 +70,9 @@ def test_dsr_report_unpacks_triple():
     assert out["dsr"] == pytest.approx(dsr_ref)
     assert out["sr"] == pytest.approx(sr_ref)
     assert out["sr0"] == pytest.approx(sr0_ref)
-    # RT-E: dsr_report emits NO pass/fail key (it is reported, never gating)
+    # RT-E: dsr_report emits NO pass/fail key (it is reported, never gating; the former `dsr_is_gate`
+    # config flag was read by nothing and left the frozen config in v1.2)
     assert "passed" not in out
-    assert CFG.dsr_is_gate is False
 
 
 # ---------------------------------------------------------------------------------------------------

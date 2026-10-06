@@ -74,6 +74,10 @@ class Snapshot:
 # ----------------------------------------------------------------------------------------------------
 @dataclass(frozen=True)
 class ForkBConfig:
+    """Every key here is READ by the apparatus (tests/test_review_v12.py enumerates the fields and fails if one is
+    not consumed by non-test code), so `sha256()` covers exactly what runs. v1.2.0 removed 14 keys that were hashed
+    but never read (H3 tax-loss pins, block_anchor, dsr_is_gate, oos_waive_block_floor, pit_factor_formation,
+    report_mom_only_leg, cost_opposite_side_fills, sue_dim_annual, gated, diagnostics); the hash changed with them."""
     # --- liquid screen (formation-once; §2 H1 / D-HARD-5) -------------------------------------------
     marketcap_floor: float = 300e6          # §2 H1: marketcap >= $300M, as-of formation
     price_floor: float = 5.0                # §2 H1: close >= $5
@@ -89,7 +93,6 @@ class ForkBConfig:
 
     # --- H1 PEAD / SUE (§2 H1; DS-13; RT-A) --------------------------------------------------------
     sue_dim_primary: str = "ARQ"            # As-Reported Quarterly; ARY for annual-only filers
-    sue_dim_annual: str = "ARY"
     eps_field: str = "epsdil"               # diluted (conservative; avoids buyback inflation) — S2 open-Q2
     sue_yoy_lag_q: int = 4                  # UE = epsdil_t - epsdil_{t-4} (fiscal-quarter aligned)
     sue_sigma_window_q: int = 8             # rolling std of own past UE over prior 8q
@@ -135,16 +138,8 @@ class ForkBConfig:
     cost_calibration_set: tuple = ()        # ★ D-HARD D: fitted decile cost multipliers; require_calibration=True at the
     #   gauntlet call. Empty = placeholder (CS×1.75) which "must not produce a deployable verdict" — freeze_ready blocks it.
 
-    # --- H3 tax-loss (DIAGNOSTIC; §2 H3) -----------------------------------------------------------
-    tl_size_bottom_deciles: int = 2         # small/micro-cap, as-of formation
-    tl_loser_decile: int = 10               # most-negative trailing-TR decile
-    tl_price_floor_primary: float = 5.0     # $5 primary; $1 reported
-    tl_price_floor_reported: float = 1.0
-    tl_lookback_skip_recent_month: bool = True   # ~11-mo TR through end-Oct
-
     # --- block unit (DH-A / RT-B / RT-C) -----------------------------------------------------------
     block_td: int = 63                      # non-overlapping 63-td blocks = the time-series-independent unit
-    block_anchor: str = "first_deployable_day_of_regime"   # RT-C
     drop_trailing_partial_block: bool = True               # RT-C
     block_rho_threshold: float = 0.2        # RT-B: |lag-1 block-rho| > 0.2 -> apply the 1-lag block-NW
     block_nw_lag: int = 1                   # Bartlett L=1, on the ~104-pt residual block series (NOT daily HAC)
@@ -157,7 +152,6 @@ class ForkBConfig:
     # --- overfit / significance (N1 / DH-A / DS-4) -------------------------------------------------
     psr_threshold: float = 0.95             # PSR(SR*=0) via carry_gate.psr_spell on the residual block series
     psr_sr_star: float = 0.0
-    dsr_is_gate: bool = False               # DSR = REPORTED, not a gate (RT-E)
 
     # --- eff-N (necessary-not-sufficient noise screen; §4) -----------------------------------------
     effn_floor: float = 3.84                # chi2(1,.05); cross-sectional, on RAW; NOT the binding breadth gate
@@ -173,17 +167,13 @@ class ForkBConfig:
     oos_effect_haircut: float = 0.5         # FIXED post-decay effect = IS-Sharpe * 0.5 (NOT IS-slope-derived)
     oos_power_z: float = 1.645              # one-sided alpha=0.05 (the literal z; power_gate Z_SUM precedent)
     oos_power_floor: float = 0.5            # power < 0.5 -> INDETERMINATE (not falsified)
-    oos_waive_block_floor: bool = True      # RT-D: the >=60-block floor is WAIVED for the ~56-block OOS leg
 
     # --- factor attribution (D-HARD-6 / N3 / N6 / open-Q3) -----------------------------------------
     factors: tuple = ("size", "value", "mom", "str", "beta")  # PIT-formed; verdict on the factor-RESIDUAL
-    pit_factor_formation: bool = True       # N6: formed on as-of-date characteristics
-    report_mom_only_leg: bool = True        # open-Q3: PEAD-residual-vs-MOM-only attribution leg
 
     # --- cost model (§5; DS-2/6/7/8) ---------------------------------------------------------------
     cost_uplift_floor_mult: float = 1.75    # max(CS*1.75, external-anchor, data-derived-uplift)
     cost_neg_spread_two_day_correction: bool = True   # NOT floor-to-zero
-    cost_opposite_side_fills: bool = True   # buy ask / sell bid -> bounce paid, not harvested
     borrow_bps_floor: float = 200.0         # >= 200 bps small-cap HTB (marketcap-decile blend)
     # external decade anchor (mandatory max() floor) — bps by decade, set at Phase-0; placeholder pinned here
     cost_external_anchor_bps: tuple = (320.0, 180.0, 110.0, 70.0, 45.0, 28.0, 18.0, 12.0, 8.0, 5.0)  # ★ decile 0 =
@@ -202,10 +192,6 @@ class ForkBConfig:
     p3_stress_windows: tuple = (("2007-08-06", "2007-08-10"), ("2021-01-25", "2021-02-01"))
     p3_single_name_gap: tuple = (0.50, 1.00)   # 50-100% SINGLE-NAME squeeze gap; book impact = gap × short-leg weight (C-2)
     p3_short_name_weight_default: float = 0.10  # C-2 fallback single-name short-leg weight (gauntlet passes the actual max)
-
-    # --- gated family (frozen pre-data; DS-9) ------------------------------------------------------
-    gated: tuple = ("H1",)                  # {H1 PEAD} only; H2/H3/H4 = diagnostics (M2-exempt, NOT Holm)
-    diagnostics: tuple = ("H2", "H3", "H4")
 
     # --- Phase-0 data-semantic switches (resolve at subscribe-time; flip a flag, not the structure) -
     PHASE0_closeadj_is_total_return: Optional[bool] = None   # Canary resolves: True -> Path A primary

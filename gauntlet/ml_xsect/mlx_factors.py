@@ -33,8 +33,13 @@ def quantile_ls_return(char: pd.Series, fwd: pd.Series, weight: pd.Series | None
     return wmean(hi) - wmean(lo)
 
 
-def ls_return_series(char_by_date: dict, fwd_by_date: dict, weight_by_date: dict | None, q: int = 5) -> pd.Series:
-    """{date → top-minus-bottom q-quantile spread}. Used for BOTH the ML book (rank by score) and each factor."""
+def ls_return_series(char_by_date: dict, fwd_by_date: dict, weight_by_date: dict | None, q: int | None = None,
+                     cfg=None) -> pd.Series:
+    """{date → top-minus-bottom q-quantile spread}. Used for BOTH the ML book (rank by score) and each factor.
+    `q` defaults to `cfg.n_quantiles`."""
+    from mlx_config import MLXConfig
+    cfg = cfg if cfg is not None else MLXConfig()
+    q = cfg.n_quantiles if q is None else q
     out = {}
     for d, ch in char_by_date.items():
         if d not in fwd_by_date:
@@ -67,10 +72,15 @@ def rt_a_alpha(book_ret: pd.Series, factor_df: pd.DataFrame) -> dict:
             "resid": pd.Series(alpha_series, index=df.index)}
 
 
-def known_factor_flag(betas: dict, explained_frac: float, rmw_thr: float = 0.5, cma_thr: float = 0.5,
-                      explained_thr: float = 0.5) -> bool:
+def known_factor_flag(betas: dict, explained_frac: float, rmw_thr: float | None = None, cma_thr: float | None = None,
+                      explained_thr: float = 0.5, cfg=None) -> bool:
     """KNOWN-FACTOR (construction-suspect) iff |rmw_beta| OR |cma_beta| exceeds thr OR explained_frac > thr.
+    Thresholds default to `cfg.known_rmw_beta_threshold` / `cfg.known_cma_beta_threshold`.
     ★ v4-verify: BH tests BOTH rmw_beta AND cma_beta (the apparatus _known tested cma only)."""
+    from mlx_config import MLXConfig
+    cfg = cfg if cfg is not None else MLXConfig()
+    rmw_thr = cfg.known_rmw_beta_threshold if rmw_thr is None else rmw_thr
+    cma_thr = cfg.known_cma_beta_threshold if cma_thr is None else cma_thr
     rb, cb = abs(betas.get("rmw", 0.0)), abs(betas.get("cma", 0.0))
     return bool(rb > rmw_thr or cb > cma_thr or (np.isfinite(explained_frac) and explained_frac > explained_thr))
 
@@ -96,3 +106,14 @@ def char_space_incremental_ic(score_by_date: dict, char_panels: dict, fwd_by_dat
         if np.isfinite(ic):
             out[d] = ic
     return pd.Series(out, dtype=float).sort_index()
+
+
+def char_space_verdict(incremental_ic: pd.Series, cfg=None) -> dict:
+    """Does the ML score carry signal BEYOND the linear characteristic combination? SURVIVES iff the mean incremental
+    rank-IC exceeds `cfg.charspace_ic_min` with block-t >= `cfg.block_t_crit` (the frozen orthogonality bar)."""
+    import mlx_ic_power as icp
+    from mlx_config import MLXConfig
+    cfg = cfg if cfg is not None else MLXConfig()
+    bt = icp.block_t(incremental_ic, cfg=cfg)
+    survives = bool(np.isfinite(bt["mean"]) and bt["mean"] > cfg.charspace_ic_min and bt["significant"])
+    return {"mean_incremental_ic": bt["mean"], "t": bt["t"], "ic_min": cfg.charspace_ic_min, "survives": survives}

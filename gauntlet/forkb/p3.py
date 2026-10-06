@@ -60,21 +60,31 @@ def _calmar(daily, ann: int = 252) -> float:
 
 
 def _maxdd_recovery_months(daily, ann: int = 252):
-    """Longest peak->recovery duration in MONTHS. RIGHT-CENSORED: an unrecovered final drawdown -> inf
-    (which FAILS the <=24mo bar). Returns (months_or_inf, censored, raw_uncensored_months)."""
+    """Longest underwater spell (peak -> recovery) in MONTHS.
+
+    RIGHT-CENSORING: a spell still open on the last day is counted at its ELAPSED length (a lower bound
+    on the true recovery time) and flagged `censored`; it fails the <=24mo bar only if that bound already
+    exceeds it. Before v1.2 any open spell was reported as `inf`, so a book one trading day off its high on
+    the final date could never pass P3 and the gauntlet could never reach DEPLOY end-to-end (external
+    review 2026-10, finding #1).
+
+    Returns (months, censored, completed_months) where completed_months counts only CLOSED spells.
+    """
     eq = _equity(daily)
     peak = np.maximum.accumulate(eq)
     underwater = eq < peak * (1 - 1e-12)
-    longest, cur = 0, 0
+    longest_completed, cur = 0, 0
     for i in range(len(eq)):
         if underwater[i]:
             cur += 1
-            longest = max(longest, cur)
         else:
+            longest_completed = max(longest_completed, cur)
             cur = 0
-    censored = bool(underwater[-1])
-    raw_months = float((longest / ann) * 12.0)
-    return (float("inf") if censored else raw_months), censored, raw_months
+    trailing = cur                       # the open spell at the end (0 if the series ends at a high)
+    censored = trailing > 0
+    months = float((max(longest_completed, trailing) / ann) * 12.0)
+    completed_months = float((longest_completed / ann) * 12.0)
+    return months, censored, completed_months
 
 
 def _worst_episode_dd(daily) -> float:

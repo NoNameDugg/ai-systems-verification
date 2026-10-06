@@ -113,9 +113,8 @@ def test_config_sha_deterministic_and_hex():
     assert a == b and len(a) == 64 and all(c in "0123456789abcdef" for c in a)
 
 
-def test_config_window_and_binning_pinned():
+def test_config_binning_and_bars_pinned():
     c = MLXConfig()
-    assert c.primary_start == "2013-07-01"           # Phase-0 SF3A pin
     assert c.n_quantiles == 5                         # ONE place for book + factor returns (BLOCK-2′)
     assert c.ic_power_ceiling == c.ic_glimmer_bar == 0.02   # BLOCK-1b: ceiling = decision bar
-    assert set(c.factor_set) == {"size", "value", "mom", "str", "beta", "rmw", "cma"}   # 7-factor
+    # (the data-window and factor_set pins left the config in v1.2.0: nothing shipped here read them)

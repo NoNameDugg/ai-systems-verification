@@ -11,11 +11,16 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
+from mlx_config import MLXConfig
+
 PERIODS_PER_YEAR = 12        # monthly rebalance
 
 
-def signed_book_weights(scores: dict, weights: dict, q: int = 5) -> dict:
-    """{date: signed held weights} — long top-q-quantile (VW, sums +1), short bottom (VW, sums -1)."""
+def signed_book_weights(scores: dict, weights: dict, q: int | None = None, cfg: MLXConfig | None = None) -> dict:
+    """{date: signed held weights} — long top-q-quantile (VW, sums +1), short bottom (VW, sums -1).
+    `q` defaults to `cfg.n_quantiles` (pinned in ONE place for both the book and the factor returns)."""
+    cfg = cfg if cfg is not None else MLXConfig()
+    q = cfg.n_quantiles if q is None else q
     held = {}
     for D, sc in scores.items():
         w = weights.get(D)
@@ -102,11 +107,13 @@ def deflated_sharpe(ret: pd.Series, n_trials: int = 1, var_sr: float | None = No
     return probabilistic_sharpe(ret, sr_benchmark=float(sr0))
 
 
-def p3_killtest(book_ret_net: pd.Series, calmar_floor: float = 0.50,
-                crash_months=("2020-03", "2021-01", "2022-09")) -> dict:
+def p3_killtest(book_ret_net: pd.Series, calmar_floor: float | None = None,
+                crash_months=("2020-03", "2021-01", "2022-09"), cfg: MLXConfig | None = None) -> dict:
     """P3 deployability: REALIZED Calmar (ann/|maxDD|) vs the floor. ★ Note (S2): no stress is injected — this is the
     realized drawdown floor; a fail is a realized factor-bleed/DD, not a stress-scenario fail. Reports the crash-month
     returns (context: the book typically PASSES these — it fails on the realized DD floor) + the worst month."""
+    cfg = cfg if cfg is not None else MLXConfig()
+    calmar_floor = cfg.p3_calmar_floor if calmar_floor is None else calmar_floor
     r = book_ret_net.dropna()
     cm = {m: (float(r[r.index.to_period("M").astype(str) == m].iloc[0])
               if len(r[r.index.to_period("M").astype(str) == m]) else float("nan")) for m in crash_months}

@@ -54,17 +54,28 @@ def test_metrics_exact_on_handbuilt_series():
     assert out["ann"] == 252
 
 
-def test_recovery_months_right_censored_to_inf():
-    # a monotone-decline series never recovers -> RIGHT-CENSORED -> inf (FAILS the <=24mo bar)
+def test_recovery_months_right_censored_is_elapsed_lower_bound():
+    # a monotone-decline series never recovers -> RIGHT-CENSORED: the open spell is counted at its elapsed
+    # length (5 days here), flagged censored, and no completed spell exists
     d = np.array([-0.01, -0.01, -0.01, -0.01, -0.01])
-    months, censored, raw = _maxdd_recovery_months(d, ann=252)
+    months, censored, completed = _maxdd_recovery_months(d, ann=252)
     assert censored is True
-    assert months == float("inf")
+    assert months == pytest.approx(5 / 252 * 12)
+    assert completed == 0.0
     # a series that fully recovers by the end is NOT censored -> finite months
     d2 = np.array([-0.05, 0.10, 0.0])  # dips then recovers above the prior peak
     months2, censored2, _ = _maxdd_recovery_months(d2, ann=252)
     assert censored2 is False
     assert np.isfinite(months2)
+
+
+def test_recovery_censored_spell_still_fails_when_it_already_exceeds_the_bar():
+    # 3 years underwater and still open at the end: the lower bound (36 mo) already exceeds the 24-mo bar
+    d = np.r_[np.full(10, 0.01), np.full(3 * 252, -0.0001)]
+    months, censored, completed = _maxdd_recovery_months(d, ann=252)
+    assert censored is True
+    assert months > 24.0
+    assert completed == 0.0
 
 
 # ---------------------------------------------------------------------------------------------------

@@ -1,9 +1,8 @@
 """External review (2026-10) reproductions — Fork-B gauntlet.
 
 Each test reproduces one finding from an independent code review of v1.1.0. They
-were committed FAILING (``xfail(strict=True)``) before any fix so the defect is in
-the tree as a test, not as prose. When a fix lands its marker is removed and the
-test must pass; a later regression fails it again.
+were committed FAILING (``xfail(strict=True)``) in 1078a65 before any fix, then
+flipped to plain tests by the fix commit. A later regression fails them again.
 
   #1  the full gauntlet never reaches a DEPLOY verdict end-to-end on its own data.
       Root cause traced to ``p3._maxdd_recovery_months``: a right-censored
@@ -22,7 +21,7 @@ import pytest
 
 from _schema import ForkBConfig
 from deflation import holm_adjusted_pvalues
-from gauntlet import run_gauntlet
+from gauntlet import _verdict_terminal, apply_family_correction, run_gauntlet
 from p3 import p3_battery
 from synth_fixtures import make_snapshot
 
@@ -35,7 +34,6 @@ PKG = pathlib.Path(__file__).resolve().parents[1]
 # =============================================================================
 
 
-@pytest.mark.xfail(strict=True, reason="review #1: right-censored drawdown -> recovery_months = inf")
 def test_one_day_underwater_at_end_is_not_infinite_recovery():
     rng = np.random.default_rng(7)
     idx = pd.bdate_range("2015-01-02", periods=600)  # clear of the pinned stress windows
@@ -53,7 +51,6 @@ def test_one_day_underwater_at_end_is_not_infinite_recovery():
     assert out["passed"] is True
 
 
-@pytest.mark.xfail(strict=True, reason="review #1: no end-to-end run reaches DEPLOY (P3 recovery inf)")
 def test_strong_planted_edge_reaches_deploy_end_to_end():
     """A planted edge that genuinely clears every gate must come out DEPLOY.
 
@@ -80,9 +77,8 @@ def test_strong_planted_edge_reaches_deploy_end_to_end():
 # =============================================================================
 
 
-@pytest.mark.xfail(strict=True, reason="review #3: no gauntlet path applies the Holm correction")
 def test_family_wise_perm_p_is_holm_adjusted():
-    from gauntlet import run_gauntlet_family  # noqa: F401  (does not exist before the fix)
+    from gauntlet import run_gauntlet_family
 
     snap, _ = make_snapshot(seed=1, n_names=60, start="2003-01-02", end="2020-12-31",
                             edge_frac=0.8, alpha_ann=0.20)
@@ -96,6 +92,46 @@ def test_family_wise_perm_p_is_holm_adjusted():
         assert o["perm_null"]["p_holm"] == pytest.approx(e)
         assert o["perm_null"]["family_size"] == 2
         assert o["perm_null"]["pass"] is bool(e <= CFG.perm_p_threshold)
+
+
+def _passing_cell(p_raw: float) -> dict:
+    """A result dict in the shape run_gauntlet returns, passing every gate except (possibly) perm-null."""
+    return {"book": "pead", "cost_mode": "CALIBRATED", "underpowered": False,
+            "M2": {"pass": True, "econ_sig": True, "power": True},
+            "PSR": {"passed": True}, "P3": {"pass": True},
+            "OOS": {"confirms": True, "indeterminate": False},
+            "interpretation": {"label": "NOVEL"},
+            "perm_null": {"p": p_raw, "pass": p_raw <= 0.05},
+            "full_series_pass": True, "verdict": "DEPLOY"}
+
+
+def test_one_lucky_cell_in_twenty_is_rejected_after_holm():
+    """20 variants tried, one came out p = 0.03: alone it would DEPLOY; in its family it does not."""
+    cells = [_passing_cell(0.03)] + [_passing_cell(0.40 + 0.02 * i) for i in range(19)]
+    assert cells[0]["verdict"] == "DEPLOY"                       # the uncorrected story
+
+    outs = apply_family_correction(cells, alpha=0.05)
+
+    lucky = outs[0]["perm_null"]
+    assert lucky["family_size"] == 20
+    assert lucky["p_raw"] == 0.03
+    assert lucky["p_holm"] == pytest.approx(min(1.0, 20 * 0.03))  # smallest p × m under Holm
+    assert lucky["pass"] is False
+    assert outs[0]["full_series_pass"] is False
+    assert outs[0]["verdict"] == "NULL"
+    assert all(o["verdict"] == "NULL" for o in outs)
+
+
+def test_single_cell_family_is_unchanged_by_holm():
+    out = apply_family_correction([_passing_cell(0.03)], alpha=0.05)[0]
+    assert out["perm_null"]["p_holm"] == 0.03 and out["perm_null"]["pass"] is True
+    assert out["verdict"] == "DEPLOY"
+
+
+def test_a_gauntlet_that_always_says_null_fails_the_deploy_test():
+    """Mutation guard: the verdict terminal must be able to say yes."""
+    assert _verdict_terminal(True, True, True, False, "NOVEL", "pead", "CALIBRATED") == "DEPLOY"
+    assert _verdict_terminal(False, True, True, False, "NOVEL", "pead", "CALIBRATED") == "NULL"
 
 
 # =============================================================================
@@ -124,7 +160,6 @@ def consumed_config_attrs(package_dir: pathlib.Path, schema_module: str) -> set:
     return seen
 
 
-@pytest.mark.xfail(strict=True, reason="review #4: 15 ForkBConfig keys are hashed but never read")
 def test_every_frozen_forkb_key_is_read_by_non_test_code():
     fields = {f.name for f in dataclasses.fields(ForkBConfig)}
     unread = sorted(fields - consumed_config_attrs(PKG, "_schema.py"))
