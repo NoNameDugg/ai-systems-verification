@@ -182,7 +182,7 @@ fn bench_ringbuffer_push(c: &mut Criterion) {
     group.bench_function("try_push_buffer_entry", |b| {
         let rb = RingBuffer::<BufferEntry>::new(1024);
         b.iter(|| {
-            let entry = BufferEntry::new(0x0100, 1, 1234567890, vec![1, 2, 3, 4]);
+            let entry = BufferEntry::new(0x0100, 1, 1234567890, &[1, 2, 3, 4]);
             if !rb.try_push(black_box(entry)) {
                 while rb.pop().is_some() {}
             }

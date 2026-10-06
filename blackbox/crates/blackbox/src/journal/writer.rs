@@ -602,7 +602,9 @@ impl JournalWriter {
     ///
     /// This method is optimized for low latency:
     /// - Single atomic push to ring buffer
-    /// - No heap allocations for small payloads
+    /// - No heap allocation for payloads up to `INLINE_PAYLOAD_SIZE` (256) bytes;
+    ///   larger payloads allocate one heap buffer (measured in
+    ///   `tests/zero_alloc_test.rs`)
     /// - Returns immediately without waiting for disk
     #[inline]
     pub fn write(
@@ -621,13 +623,8 @@ impl JournalWriter {
             None => now_micros(),
         };
 
-        // Create buffer entry
-        let entry = BufferEntry::new(
-            record_type.as_u16(),
-            exchange_id,
-            timestamp,
-            payload.to_vec(),
-        );
+        // Create buffer entry (payload copied inline when it fits)
+        let entry = BufferEntry::new(record_type.as_u16(), exchange_id, timestamp, payload);
 
         // Try to push to ring buffer
         if !self.state.ring_buffer.try_push(entry) {
@@ -665,7 +662,7 @@ impl JournalWriter {
             record_type.as_u16(),
             exchange_id,
             timestamp.as_micros(),
-            payload.to_vec(),
+            payload,
         );
 
         if !self.state.ring_buffer.try_push(entry) {
@@ -863,7 +860,7 @@ fn background_writer(state: Arc<SharedState>, mut mmap: MmapMut, _sync_on_close:
             }
 
             // Compute CRC32 of payload
-            let crc = crc32fast::hash(&entry.payload);
+            let crc = crc32fast::hash(entry.payload.as_slice());
 
             // Build record header
             let header = RecordHeader {
@@ -880,7 +877,7 @@ fn background_writer(state: Arc<SharedState>, mut mmap: MmapMut, _sync_on_close:
             let header_buf = header.to_bytes();
             mmap[write_pos..write_pos + RECORD_HEADER_SIZE].copy_from_slice(&header_buf);
             mmap[write_pos + RECORD_HEADER_SIZE..write_pos + total_size]
-                .copy_from_slice(&entry.payload);
+                .copy_from_slice(entry.payload.as_slice());
 
             // Update state
             let new_pos = write_pos + total_size;

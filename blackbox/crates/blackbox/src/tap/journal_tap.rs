@@ -60,7 +60,9 @@
 
 use super::traits::Tap;
 use crate::journal::{JournalWriter, RecordType};
+use crate::verify::CheckpointData;
 use blackbox_types::{Exchange, Timestamp};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 
 /// Tap implementation that records events to a journal file.
@@ -104,6 +106,8 @@ pub struct JournalTap {
     // TODO: Replace with lock-free design in Phase 2
     writer: Mutex<Option<JournalWriter>>,
     active: bool,
+    /// Sequence number of the next checkpoint record (0-based).
+    checkpoint_seq: AtomicU64,
 }
 
 impl std::fmt::Debug for JournalTap {
@@ -121,6 +125,7 @@ impl JournalTap {
         Self {
             writer: Mutex::new(Some(writer)),
             active: true,
+            checkpoint_seq: AtomicU64::new(0),
         }
     }
 
@@ -129,6 +134,7 @@ impl JournalTap {
         Self {
             writer: Mutex::new(None),
             active: false,
+            checkpoint_seq: AtomicU64::new(0),
         }
     }
 }
@@ -158,10 +164,15 @@ impl Tap for JournalTap {
         }
     }
 
-    fn record_checkpoint(&self, state_hash: &[u8; 32], _timestamp: Timestamp) {
+    fn record_checkpoint(&self, state_hash: &[u8; 32], timestamp: Timestamp) {
         if let Ok(mut guard) = self.writer.lock() {
             if let Some(ref mut writer) = *guard {
-                let _ = writer.write(RecordType::Checkpoint, 0, state_hash);
+                // The checkpoint record is the 48-byte layout the verifier reads
+                // (`verify::Checkpoint`): sequence | timestamp | state hash. The
+                // bytes are built on the stack; no heap allocation.
+                let seq = self.checkpoint_seq.fetch_add(1, Ordering::Relaxed);
+                let data = CheckpointData::new(seq, timestamp.as_micros(), *state_hash).to_bytes();
+                let _ = writer.write_with_timestamp(RecordType::Checkpoint, 0, &data, timestamp);
             }
         }
     }
@@ -323,10 +334,13 @@ mod tests {
         let records: Vec<_> = reader.collect();
 
         assert_eq!(records.len(), 1);
-        // Verify the checkpoint payload contains the hash
-        if let Ok(ref record) = records[0] {
-            assert_eq!(record.payload.len(), 32);
-        }
+        // The checkpoint payload is the 48-byte verifier layout carrying the hash
+        let record = records[0].as_ref().unwrap();
+        assert_eq!(record.payload.len(), 48);
+        let cp = crate::verify::Checkpoint::from_bytes(&record.payload).unwrap();
+        assert_eq!(cp.sequence(), 0);
+        assert_eq!(cp.timestamp(), 1000);
+        assert_eq!(*cp.state_hash(), hash);
     }
 
     // ==================== Thread Safety Tests ====================
@@ -606,7 +620,9 @@ mod tests {
         let records: Vec<_> = reader.filter_map(|r| r.ok()).collect();
 
         assert_eq!(records.len(), 1);
-        assert_eq!(records[0].payload.as_slice(), &hash);
+        let cp = crate::verify::Checkpoint::from_bytes(&records[0].payload).unwrap();
+        assert_eq!(*cp.state_hash(), hash);
+        assert_eq!(cp.timestamp(), 1000);
     }
 
     // ==================== Exchange ID Verification Tests ====================
@@ -834,7 +850,8 @@ mod tests {
             JournalReader::open_with_config(&path, ReaderConfig::skip_schema_hash()).unwrap();
         let records: Vec<_> = reader.filter_map(|r| r.ok()).collect();
         assert_eq!(records.len(), 1);
-        assert_eq!(records[0].payload.as_slice(), &hash);
+        let cp = crate::verify::Checkpoint::from_bytes(&records[0].payload).unwrap();
+        assert_eq!(*cp.state_hash(), hash);
     }
 
     #[test]
@@ -855,7 +872,8 @@ mod tests {
             JournalReader::open_with_config(&path, ReaderConfig::skip_schema_hash()).unwrap();
         let records: Vec<_> = reader.filter_map(|r| r.ok()).collect();
         assert_eq!(records.len(), 1);
-        assert_eq!(records[0].payload.as_slice(), &hash);
+        let cp = crate::verify::Checkpoint::from_bytes(&records[0].payload).unwrap();
+        assert_eq!(*cp.state_hash(), hash);
     }
 
     // ==================== Record Sequence Tests ====================

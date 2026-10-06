@@ -578,6 +578,18 @@ impl JournalReader {
         let header_bytes: [u8; RECORD_HEADER_SIZE] = self.mmap[self.read_position..header_end]
             .try_into()
             .unwrap();
+
+        // An all-zero header is the pre-allocated, never-written tail of a
+        // journal that was not closed cleanly (crash, kill, power loss): no
+        // footer was written, so the file ends here. Without this check the
+        // tail parses as an endless run of empty `Unknown` records whose empty
+        // payload trivially matches crc32(&[]) == 0 (external review 2026-10,
+        // finding #12). `read_footer()` tells callers whether the close was clean.
+        if header_bytes.iter().all(|&b| b == 0) {
+            self.finished = true;
+            return None;
+        }
+
         let header = RecordHeader::from_bytes(&header_bytes);
 
         // Copy fields to avoid packed struct issues

@@ -28,7 +28,7 @@
 //! ```
 
 use crate::journal::{JournalReader, ReaderError, RecordType};
-use crate::verify::{ComparisonReport, VerificationStats};
+use crate::verify::{Checkpoint, ComparisonReport, ReportStatus, VerificationStats};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
@@ -541,50 +541,88 @@ fn hex_preview(bytes: &[u8], max_bytes: usize) -> String {
 
 /// Execute the `verify` command.
 ///
-/// Note: This is a simplified verification that counts checkpoints found.
-/// Full verification requires a user-provided state hasher implementation.
-pub fn execute_verify(journal: &PathBuf) -> CliResult<ComparisonReport> {
+/// What this verifies without a user-supplied state hasher: every record's
+/// CRC (the reader rejects corrupt records), that every checkpoint record
+/// parses as the 48-byte [`Checkpoint`] layout, and that checkpoint sequence
+/// numbers strictly increase. What it cannot verify: that the recorded state
+/// hashes match a replay, which needs the user's hasher
+/// (`VerifyingReplayEngine`). So the report is never `Pass` from this
+/// command: it is `Fail` when anything checkable is wrong and `Incomplete`
+/// otherwise, with `checkpoints_matched` left at 0 because nothing was
+/// matched. (Before v1.2 it reported every checkpoint as matched and `Pass`
+/// without parsing one; external review 2026-10, finding #11.)
+///
+/// `stop_on_mismatch` stops at the first sequence regression or unparseable
+/// checkpoint instead of scanning the whole journal.
+pub fn execute_verify(journal: &PathBuf, stop_on_mismatch: bool) -> CliResult<ComparisonReport> {
     if !journal.exists() {
         return Err(CliError::FileNotFound(journal.clone()));
     }
 
     let reader = JournalReader::open(journal)?;
 
-    let mut events_processed = 0u64;
-    let mut checkpoints_found = 0u64;
+    let mut stats = VerificationStats::new();
+    let mut last_sequence: Option<u64> = None;
 
     for result in reader {
         let record = result?;
-        events_processed += 1;
+        stats.events_processed += 1;
 
-        if record.record_type() == RecordType::Checkpoint {
-            checkpoints_found += 1;
+        if record.record_type() != RecordType::Checkpoint {
+            continue;
+        }
+        stats.checkpoints_found += 1;
+
+        let problem = match Checkpoint::from_bytes(&record.payload) {
+            Err(_) => {
+                stats.errors += 1;
+                true
+            }
+            Ok(cp) => {
+                let regressed = last_sequence.is_some_and(|prev| cp.sequence() <= prev);
+                if regressed {
+                    stats.checkpoints_mismatched += 1;
+                    stats.first_mismatch_sequence.get_or_insert(cp.sequence());
+                }
+                last_sequence = Some(cp.sequence());
+                regressed
+            }
+        };
+
+        if problem && stop_on_mismatch {
+            break;
         }
     }
-
-    // For now, we create a report based on what we found
-    // Full verification requires a state hasher callback
-    let stats = VerificationStats {
-        events_processed,
-        checkpoints_found,
-        checkpoints_matched: checkpoints_found, // Assume all match without hasher
-        checkpoints_mismatched: 0,
-        errors: 0,
-        first_mismatch_sequence: None,
-    };
 
     let mut report = ComparisonReport::from_stats(&stats, &[]);
     report.title = format!("Verification Report: {}", journal.display());
 
-    // Add note about simplified verification
-    if checkpoints_found == 0 {
-        report.add_recommendation(
-            "No checkpoints found. Verification requires checkpoint records in the journal.",
-        );
+    if stats.is_successful() {
+        // Structure is sound, but no state hash was compared: not a PASS.
+        report.status = ReportStatus::Incomplete;
+        if stats.checkpoints_found == 0 {
+            report.add_recommendation(
+                "No checkpoints found. Verification requires checkpoint records in the journal.",
+            );
+        } else {
+            report.add_recommendation(
+                "Checkpoints parsed and in sequence, but state hashes were NOT compared: \
+                 that requires a state hasher (VerifyingReplayEngine). checkpoints_matched = 0.",
+            );
+        }
     } else {
-        report.add_recommendation(
-            "Note: This is simplified verification. Full verification requires a state hasher callback.",
-        );
+        if stats.errors > 0 {
+            report.add_recommendation(format!(
+                "{} checkpoint record(s) could not be parsed as the 48-byte checkpoint layout.",
+                stats.errors
+            ));
+        }
+        if stats.checkpoints_mismatched > 0 {
+            report.add_recommendation(format!(
+                "{} checkpoint(s) out of sequence (first at sequence {:?}).",
+                stats.checkpoints_mismatched, stats.first_mismatch_sequence
+            ));
+        }
     }
 
     Ok(report)
@@ -1080,7 +1118,7 @@ mod tests {
 
     #[test]
     fn test_execute_verify_file_not_found() {
-        let result = execute_verify(&PathBuf::from("nonexistent.journal"));
+        let result = execute_verify(&PathBuf::from("nonexistent.journal"), false);
         assert!(result.is_err());
     }
 }

@@ -633,7 +633,11 @@ pub enum Commands {
 
 ```rust
 pub fn execute_info(journal: &PathBuf, show_schema: bool) -> CliResult<JournalInfo>;
-pub fn execute_verify(journal: &PathBuf) -> CliResult<ComparisonReport>;
+// Parses every checkpoint (48-byte layout) and checks sequence order. Without a
+// state hasher the result is never `Pass`: `Incomplete` when the structure is
+// sound (checkpoints_matched = 0), `Fail` on an unparseable or out-of-order
+// checkpoint. `stop_on_mismatch` stops at the first problem.
+pub fn execute_verify(journal: &PathBuf, stop_on_mismatch: bool) -> CliResult<ComparisonReport>;
 pub fn execute_dump(journal: &PathBuf, limit: Option<usize>, filter: Option<&str>) -> CliResult<Vec<DumpedRecord>>;
 pub fn execute_stats(journal: &PathBuf) -> CliResult<JournalStats>;
 ```

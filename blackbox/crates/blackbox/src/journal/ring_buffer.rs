@@ -41,8 +41,98 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 /// Cache line size for padding (64 bytes on most modern CPUs).
 const CACHE_LINE_SIZE: usize = 64;
 
-/// A record entry in the ring buffer for journal writes.
+/// Payloads up to this many bytes are copied straight into the ring-buffer
+/// slot, so the hot path makes no heap allocation for them (checkpoints are
+/// 48 bytes; most ingress frames fit). Larger payloads fall back to a heap
+/// buffer, which allocates once per record. With the default 16,384-slot ring
+/// this inline storage costs about 4.5 MiB, allocated once at writer creation.
+pub const INLINE_PAYLOAD_SIZE: usize = 256;
+
+/// Record payload storage inside a ring-buffer slot.
+// The size difference between the variants is the point: the inline array is
+// what keeps small records off the heap. Boxing it would re-introduce the
+// allocation this type exists to avoid.
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone)]
+pub enum Payload {
+    /// Small payload copied into the slot (no allocation).
+    Inline {
+        /// Number of valid bytes in `data`.
+        len: u16,
+        /// Inline storage.
+        data: [u8; INLINE_PAYLOAD_SIZE],
+    },
+    /// Large payload on the heap (one allocation).
+    Heap(Vec<u8>),
+}
+
+impl Payload {
+    /// Copy `bytes` into inline storage when they fit, otherwise onto the heap.
+    #[inline]
+    pub fn from_slice(bytes: &[u8]) -> Self {
+        if bytes.len() <= INLINE_PAYLOAD_SIZE {
+            let mut data = [0u8; INLINE_PAYLOAD_SIZE];
+            data[..bytes.len()].copy_from_slice(bytes);
+            Self::Inline {
+                len: bytes.len() as u16,
+                data,
+            }
+        } else {
+            Self::Heap(bytes.to_vec())
+        }
+    }
+
+    /// The payload bytes.
+    #[inline]
+    pub fn as_slice(&self) -> &[u8] {
+        match self {
+            Self::Inline { len, data } => &data[..*len as usize],
+            Self::Heap(v) => v.as_slice(),
+        }
+    }
+
+    /// Payload length in bytes.
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.as_slice().len()
+    }
+
+    /// Whether the payload is empty.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Whether the payload lives inline (no heap allocation was made).
+    #[inline]
+    pub fn is_inline(&self) -> bool {
+        matches!(self, Self::Inline { .. })
+    }
+}
+
+impl std::fmt::Debug for Payload {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Payload")
+            .field("len", &self.len())
+            .field("inline", &self.is_inline())
+            .finish()
+    }
+}
+
+impl PartialEq<[u8]> for Payload {
+    fn eq(&self, other: &[u8]) -> bool {
+        self.as_slice() == other
+    }
+}
+
+impl PartialEq<Vec<u8>> for Payload {
+    fn eq(&self, other: &Vec<u8>) -> bool {
+        self.as_slice() == other.as_slice()
+    }
+}
+
+/// A record entry in the ring buffer for journal writes.
+#[derive(Clone, Debug)]
 pub struct BufferEntry {
     /// Record type.
     pub record_type: u16,
@@ -50,18 +140,19 @@ pub struct BufferEntry {
     pub exchange_id: u8,
     /// Timestamp in microseconds.
     pub timestamp: i64,
-    /// Payload data.
-    pub payload: Vec<u8>,
+    /// Payload data (inline for small payloads).
+    pub payload: Payload,
 }
 
 impl BufferEntry {
-    /// Create a new buffer entry.
-    pub fn new(record_type: u16, exchange_id: u8, timestamp: i64, payload: Vec<u8>) -> Self {
+    /// Create a new buffer entry, copying the payload (inline when it fits).
+    #[inline]
+    pub fn new(record_type: u16, exchange_id: u8, timestamp: i64, payload: &[u8]) -> Self {
         Self {
             record_type,
             exchange_id,
             timestamp,
-            payload,
+            payload: Payload::from_slice(payload),
         }
     }
 }
@@ -604,7 +695,7 @@ mod tests {
     fn test_with_buffer_entry() {
         let rb = RingBuffer::new(8);
 
-        let entry = BufferEntry::new(0x0100, 1, 1234567890, vec![1, 2, 3, 4]);
+        let entry = BufferEntry::new(0x0100, 1, 1234567890, &[1, 2, 3, 4]);
         rb.try_push(entry);
 
         let popped = rb.pop().unwrap();
@@ -612,6 +703,23 @@ mod tests {
         assert_eq!(popped.exchange_id, 1);
         assert_eq!(popped.timestamp, 1234567890);
         assert_eq!(popped.payload, vec![1, 2, 3, 4]);
+        assert!(popped.payload.is_inline());
+    }
+
+    #[test]
+    fn test_buffer_entry_payload_inline_vs_heap() {
+        let small = BufferEntry::new(1, 1, 0, &[7u8; INLINE_PAYLOAD_SIZE]);
+        assert!(small.payload.is_inline());
+        assert_eq!(small.payload.len(), INLINE_PAYLOAD_SIZE);
+        assert_eq!(small.payload.as_slice(), &[7u8; INLINE_PAYLOAD_SIZE][..]);
+
+        let large = BufferEntry::new(1, 1, 0, &[9u8; INLINE_PAYLOAD_SIZE + 1]);
+        assert!(!large.payload.is_inline());
+        assert_eq!(large.payload.len(), INLINE_PAYLOAD_SIZE + 1);
+
+        let empty = BufferEntry::new(1, 1, 0, &[]);
+        assert!(empty.payload.is_inline());
+        assert!(empty.payload.is_empty());
     }
 
     #[test]

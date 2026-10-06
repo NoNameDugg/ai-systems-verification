@@ -423,7 +423,6 @@ fn null_tap_hot_path_makes_zero_allocations_measured() {
 /// JournalTap: a small payload must reach the ring buffer without a heap
 /// allocation on the calling thread.
 #[test]
-#[ignore = "review #13: JournalWriter::write allocates (payload.to_vec()) on every record"]
 fn journal_tap_small_payload_hot_path_makes_zero_allocations() {
     use blackbox::journal::{JournalWriter, WriterConfig};
     use blackbox::tap::JournalTap;

@@ -1,11 +1,9 @@
 //! External review (2026-10) reproductions — blackbox
 //!
 //! Each test reproduces one finding from an independent code review of
-//! v1.1.0. They were committed `#[ignore]`d-and-failing before any fix so the
-//! defect is in the tree as a test, not as prose. When the fix lands the
-//! `#[ignore]` is removed and the test must pass; a later regression fails it.
-//!
-//! Run them on purpose with `cargo test --test external_review_v12 -- --ignored`.
+//! v1.1.0. They were committed `#[ignore]`d-and-failing in 1078a65 before any
+//! fix, then flipped to plain tests by the fix commit. A later regression
+//! fails them again.
 //!
 //! Findings covered:
 //!   #10 the tap writes a 32-byte checkpoint; the verifier requires 48.
@@ -44,7 +42,6 @@ fn checkpoint_bytes(seq: u64, hash_byte: u8) -> [u8; 48] {
 // =============================================================================
 
 #[test]
-#[ignore = "review #10: JournalTap writes 32-byte checkpoints; Checkpoint::from_bytes needs 48"]
 fn tap_checkpoint_is_parseable_by_verifier() {
     let path = test_path("tap_checkpoint");
     {
@@ -81,7 +78,6 @@ fn tap_checkpoint_is_parseable_by_verifier() {
 // =============================================================================
 
 #[test]
-#[ignore = "review #11: execute_verify sets checkpoints_matched = checkpoints_found and reports PASS"]
 fn verify_does_not_claim_matches_without_a_hasher() {
     let path = test_path("verify_unverified");
     {
@@ -97,7 +93,7 @@ fn verify_does_not_claim_matches_without_a_hasher() {
         writer.close().unwrap();
     }
 
-    let report = execute_verify(&path).unwrap();
+    let report = execute_verify(&path, false).unwrap();
 
     assert_eq!(report.stats.checkpoints_found, 3);
     assert_eq!(
@@ -113,7 +109,6 @@ fn verify_does_not_claim_matches_without_a_hasher() {
 }
 
 #[test]
-#[ignore = "review #11: execute_verify never parses a checkpoint payload"]
 fn verify_fails_on_a_corrupt_checkpoint() {
     // Case A: a malformed (32-byte) checkpoint — exactly what the tap writes today.
     let path_a = test_path("verify_malformed");
@@ -125,7 +120,7 @@ fn verify_fails_on_a_corrupt_checkpoint() {
             .unwrap();
         writer.close().unwrap();
     }
-    let report_a = execute_verify(&path_a).unwrap();
+    let report_a = execute_verify(&path_a, false).unwrap();
     assert_eq!(report_a.stats.checkpoints_found, 1);
     assert_eq!(
         report_a.stats.errors, 1,
@@ -148,7 +143,7 @@ fn verify_fails_on_a_corrupt_checkpoint() {
             .unwrap();
         writer.close().unwrap();
     }
-    let report_b = execute_verify(&path_b).unwrap();
+    let report_b = execute_verify(&path_b, false).unwrap();
     assert_eq!(report_b.stats.checkpoints_found, 3);
     assert!(
         report_b.stats.checkpoints_mismatched >= 1,
@@ -167,7 +162,6 @@ fn verify_fails_on_a_corrupt_checkpoint() {
 // =============================================================================
 
 #[test]
-#[ignore = "review #12: the reader parses the zero-filled tail as an endless run of empty records"]
 fn reader_stops_at_zero_filled_tail_when_footer_is_missing() {
     let path = test_path("crash_tail");
     let footer_offset: u64;

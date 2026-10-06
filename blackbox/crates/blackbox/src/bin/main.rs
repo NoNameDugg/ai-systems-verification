@@ -56,9 +56,9 @@ fn run_command(command: Commands) -> Result<(), CliError> {
             journal,
             format,
             output,
-            stop_on_mismatch: _,
+            stop_on_mismatch,
         } => {
-            let report = execute_verify(&journal)?;
+            let report = execute_verify(&journal, stop_on_mismatch)?;
             let output_str = format_output(&report, format);
 
             if let Some(output_path) = output {
@@ -69,9 +69,12 @@ fn run_command(command: Commands) -> Result<(), CliError> {
                 println!("{}", output_str);
             }
 
-            // Exit with non-zero if verification failed
-            if !report.is_pass() {
-                std::process::exit(2);
+            // Exit codes: 0 = Pass, 1 = Incomplete (structure sound, state hashes
+            // not compared: this command cannot Pass without a hasher), 2 = Fail.
+            match report.status {
+                blackbox::verify::ReportStatus::Pass => {}
+                blackbox::verify::ReportStatus::Incomplete => std::process::exit(1),
+                blackbox::verify::ReportStatus::Fail => std::process::exit(2),
             }
         }
 
