@@ -20,8 +20,9 @@ data-generating process is known, plus the truth the tests assert against.
 **`rank_ic_gate/` — signal quality, point-in-time validity, and power.** A powered rank-IC
 micro-test: Spearman rank-IC with Fisher-z error bands, a corrected variance-inflation power gate
 (minimum detectable IC from an honest effective sample size), a point-in-time validator that
-refuses to run on look-ahead-contaminated pairs, a PIT-invariant signal/forward-return pairer, and
-Holm family-wise deflation across cells.
+refuses to run on look-ahead-contaminated pairs, a PIT-invariant signal/forward-return pairer, Holm
+family-wise deflation across cells, and a lag-sensitivity probe that recomputes the rank-IC with every
+signal delayed one and two extra bars and flags an effect that collapses as look-ahead-suspect.
 
 **`ml_xsect/` — a non-linear model under leakage-safe cross-validation.** A shallow, regularized
 gradient-boosted ranker over a monthly cross-sectional panel, scored under purged and embargoed

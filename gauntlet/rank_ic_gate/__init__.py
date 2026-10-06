@@ -8,6 +8,7 @@ asset Y, with honest effective-N and family-wise deflation):
   - deflation            : Holm family-wise correction over per-cell permutation p-values
   - signal_return_pairer : PIT-invariant pairing of a bar-open signal with a forward return
   - pit_validator        : backtest PIT (available_at < forward_window_start) assertions
+  - lag_sensitivity      : rank-IC retained under a 1- and 2-bar extra delay (look-ahead probe)
 
 All modules are pure (numpy/pandas, no I/O, deterministic).
 """
