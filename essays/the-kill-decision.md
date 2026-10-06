@@ -38,10 +38,10 @@ flawlessly. It just had nothing to do.
 ## Why I didn't just keep looking
 
 The honest temptation, at that point, is to keep digging — surely *some* configuration, *some*
-market, *some* signal works. So I did keep digging, for a long time, across 29 distinct
-hypotheses: FX and cross-asset trend-following, several flavors of carry, crypto momentum and funding,
-event-driven equity strategies, and a machine-learning cross-sectional ranker on licensed fundamental
-data. The full record is in `RESEARCH_RECORD.md`. Almost all of them returned null. The two that came
+market, *some* signal works. So I did keep digging, for a long time, across 22 distinct
+hypotheses: FX and cross-asset trend-following, FX carry and commodity roll-yield, event-driven
+equity strategies, and a machine-learning cross-sectional ranker on licensed fundamental data. The
+full record is in `RESEARCH_RECORD.md`. Almost all of them returned null. The two that came
 closest — a cross-asset trend book (real gross edge of +11%/yr, but null after costs) and the ML
 ranker (a genuinely real, leakage-clean signal) — both failed a crash-survival test, with drawdowns
 too deep to hold.

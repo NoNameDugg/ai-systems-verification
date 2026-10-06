@@ -43,7 +43,7 @@ If you read three things, read these — they are the argument this repository m
 - **[`METHODOLOGY.md`](METHODOLOGY.md)** — how I decide whether a system works: three-role adversarial
   review, test-driven implementation, "green tests are not a working system," and falsification over
   confirmation.
-- **[`RESEARCH_RECORD.md`](RESEARCH_RECORD.md)** — how I test and report honestly: the map of 29
+- **[`RESEARCH_RECORD.md`](RESEARCH_RECORD.md)** — how I test and report honestly: the map of 22
   hypotheses tested, almost all of which returned null, with every number read back from source.
 - **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — the live system these components came from, how the pieces
   fit together, and why I switched it off.
