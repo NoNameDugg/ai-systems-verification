@@ -5,7 +5,7 @@
 //! Dockerfile mentions (as `-e NAME=` in the run example or `ENV NAME=`) must
 //! appear as a string literal in the code that reads environment variables.
 //!
-//! Committed `#[ignore]`d-and-failing on purpose; run with `-- --ignored`.
+//! Committed `#[ignore]`d-and-failing in 1078a65; flipped to plain tests by the fix.
 
 use std::collections::BTreeSet;
 
@@ -55,7 +55,6 @@ fn dockerfile_mentions_app_env_vars() {
 }
 
 #[test]
-#[ignore = "review #17: OANDA_API_TOKEN, OANDA_ACCOUNT_ID, ASTRA_ENV, ASTRA_LOG_LEVEL are documented but never read"]
 fn every_documented_env_var_is_read_by_the_code() {
     let unread: Vec<String> = dockerfile_env_names()
         .into_iter()
@@ -73,7 +72,6 @@ fn every_documented_env_var_is_read_by_the_code() {
 /// "not configured" guard, so the binary sent `Authorization: Bearer ` and
 /// looped on HTTP 401.
 #[test]
-#[ignore = "review #17 (adjacent): an empty credential string must read as not configured"]
 fn empty_credential_strings_are_not_configured() {
     use astra_flash::core::config::FlashConfig;
 

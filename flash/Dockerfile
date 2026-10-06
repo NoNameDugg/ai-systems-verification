@@ -11,8 +11,8 @@
 # Run:
 #   docker run -d \
 #     --name astra-flash \
-#     -e OANDA_API_TOKEN=$OANDA_API_TOKEN \
-#     -e OANDA_ACCOUNT_ID=$OANDA_ACCOUNT_ID \
+#     -e ASTRA_FLASH_OANDA_API_KEY=$OANDA_API_KEY \
+#     -e ASTRA_FLASH_OANDA_ACCOUNT_ID=$OANDA_ACCOUNT_ID \
 #     -e ASTRA_FLASH_REDIS_URL=redis://redis:6379 \
 #     -v ./config:/app/config:ro \
 #     -p 9090:9090 \
@@ -74,9 +74,11 @@ LABEL org.opencontainers.image.description="High-performance Rust market data en
 LABEL org.opencontainers.image.version="0.1.0"
 LABEL org.opencontainers.image.licenses="MIT"
 
-# Application environment
-ENV ASTRA_ENV=production
-ENV ASTRA_LOG_LEVEL=INFO
+# Application environment (names the code reads: see src/core/config.rs
+# apply_env_overrides and src/main.rs; tests/production/env_contract_test.rs
+# fails the build if a name here is not read anywhere)
+ENV ASTRA_FLASH_ENV=production
+ENV ASTRA_FLASH_LOGGING_LEVEL=INFO
 ENV APP_HOME=/app
 ENV RUST_BACKTRACE=1
 

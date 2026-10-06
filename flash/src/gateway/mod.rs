@@ -36,7 +36,10 @@
 //! ```
 
 use crate::book::BookSnapshot;
-use crate::core::types::{PriceLevel, Timestamp};
+use crate::core::types::{Exchange, Instrument, PriceLevel, Timestamp};
+use rust_decimal::prelude::FromPrimitive;
+use rust_decimal::Decimal;
+use serde::de::Error as _;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 
@@ -305,9 +308,51 @@ impl OrderBookSnapshot {
     ///
     /// This is the single decode path shared by the Python binding, so what
     /// the binary publishes and what a consumer can read are tested as one
-    /// seam (external review 2026-10, finding #18).
+    /// seam (external review 2026-10, finding #18: the binding used to decode
+    /// the stream as the internal type, whose field names differ, and so
+    /// could not read a single published message).
+    ///
+    /// The wire carries `symbol` as `BASE_QUOTE`, `exchange` as the lowercase
+    /// name from [`Exchange::as_str`], and f64 quantities; level timestamps are
+    /// not on the wire and are set to the snapshot timestamp.
     pub fn decode_published_orderbook(data: &[u8]) -> Result<BookSnapshot, serde_json::Error> {
-        serde_json::from_slice::<BookSnapshot>(data)
+        let wire: Self = serde_json::from_slice(data)?;
+        wire.try_into_book_snapshot()
+    }
+
+    /// Convert this wire snapshot back into the internal [`BookSnapshot`].
+    pub fn try_into_book_snapshot(&self) -> Result<BookSnapshot, serde_json::Error> {
+        let exchange = match self.exchange.as_ref() {
+            "oanda" => Exchange::Oanda,
+            "deribit" => Exchange::Deribit,
+            "binance" => Exchange::Binance,
+            other => {
+                return Err(serde_json::Error::custom(format!(
+                    "unknown exchange in published snapshot: {other:?}"
+                )))
+            }
+        };
+        let (base, quote) = match self.symbol.split_once('_') {
+            Some((b, q)) if !b.is_empty() && !q.is_empty() => (b, q),
+            _ => {
+                return Err(serde_json::Error::custom(format!(
+                    "published symbol is not BASE_QUOTE: {:?}",
+                    self.symbol
+                )))
+            }
+        };
+        let level = |l: &OrderBookLevel| -> Result<PriceLevel, serde_json::Error> {
+            let qty = Decimal::from_f64(l.quantity).ok_or_else(|| {
+                serde_json::Error::custom(format!("quantity not representable: {}", l.quantity))
+            })?;
+            Ok(PriceLevel::new(l.price, qty, self.timestamp))
+        };
+        Ok(BookSnapshot {
+            instrument: Instrument::new(base, quote, exchange, self.symbol.as_ref()),
+            timestamp: self.timestamp,
+            bids: self.bids.iter().map(level).collect::<Result<_, _>>()?,
+            asks: self.asks.iter().map(level).collect::<Result<_, _>>()?,
+        })
     }
 
     /// Validate the snapshot has consistent data.

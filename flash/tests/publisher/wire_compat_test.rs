@@ -6,8 +6,8 @@
 //! names, so it could not decode a single message the program publishes.
 //!
 //! These tests pin the published wire format to a committed fixture and assert
-//! that the decode path the binding uses can read it. Tests marked `#[ignore]`
-//! reproduce the finding and were committed failing on purpose.
+//! that the decode path the binding uses can read it. The reproductions were
+//! committed `#[ignore]`d-and-failing in 1078a65 and flipped by the fix.
 
 use astra_flash::book::BookSnapshot;
 use astra_flash::core::types::{Exchange, Instrument, PriceLevel};
@@ -45,7 +45,6 @@ fn published_orderbook_wire_format_matches_committed_fixture() {
 
 /// What the program publishes must decode through the path the binding uses.
 #[test]
-#[ignore = "review #18: published JSON (symbol/exchange/f64 levels) is decoded as internal BookSnapshot (instrument/Decimal levels)"]
 fn published_orderbook_json_decodes_back_to_a_book_snapshot() {
     let wire = published_json();
     let decoded = OrderBookSnapshot::decode_published_orderbook(wire.as_bytes())
@@ -67,7 +66,6 @@ fn published_orderbook_json_decodes_back_to_a_book_snapshot() {
 
 /// The committed fixture is exactly what a consumer sees on the wire.
 #[test]
-#[ignore = "review #18: the committed published message cannot be decoded"]
 fn committed_published_fixture_decodes() {
     let decoded = OrderBookSnapshot::decode_published_orderbook(FIXTURE.trim().as_bytes())
         .expect("committed published fixture must decode");
@@ -77,7 +75,6 @@ fn committed_published_fixture_decodes() {
 /// The Python binding's own entry point (only built with `--features python`).
 #[cfg(feature = "python")]
 #[test]
-#[ignore = "review #18: PyFlashClient's deserialize_book cannot decode a published orderbook"]
 fn python_binding_decodes_a_published_orderbook() {
     use astra_flash::bindings::stream::deserialize_book;
     let wire = published_json();

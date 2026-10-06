@@ -9,8 +9,8 @@
 # - Production logging level
 #
 # Environment Variables Required:
-# - OANDA_API_TOKEN: Your OANDA API token
-# - OANDA_ACCOUNT_ID: Your OANDA account ID
+# - ASTRA_FLASH_OANDA_API_KEY: Your OANDA API token
+# - ASTRA_FLASH_OANDA_ACCOUNT_ID: Your OANDA account ID
 #
 # =============================================================================
 

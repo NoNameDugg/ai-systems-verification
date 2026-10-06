@@ -18,7 +18,7 @@
 use astra_flash::book::{BookSnapshot, OrderBook};
 use astra_flash::core::metrics::{FLASH_BACKPRESSURE_STATUS, FLASH_MESSAGES_DROPPED_TOTAL};
 use astra_flash::network::oanda_stream::{
-    consume_ndjson_stream, oanda_instrument, OandaReconnectPolicy, StreamExit,
+    consume_ndjson_stream, idle_timeout_for, oanda_instrument, OandaReconnectPolicy, StreamExit,
 };
 use astra_flash::prelude::*;
 use astra_flash::publisher::{DualPublisher, DualPublisherConfig, PoolConfig, RedisPool};
@@ -180,11 +180,12 @@ async fn main() -> Result<()> {
     // Spawn OANDA streaming task if enabled
     let oanda_handle = if config.exchanges.oanda.enabled {
         let oanda_config = config.exchanges.oanda.clone();
+        let ws_config = config.websocket.clone();
         let books = Arc::clone(&order_books);
         let tx = publish_tx.clone();
 
         Some(tokio::spawn(async move {
-            run_oanda_stream(oanda_config, books, tx).await;
+            run_oanda_stream(oanda_config, ws_config, books, tx).await;
         }))
     } else {
         info!("OANDA: DISABLED");
@@ -269,6 +270,7 @@ async fn run_publisher_task(publisher: Arc<DualPublisher>, mut rx: mpsc::Receive
 /// The streaming URL format: https://stream-fxpractice.oanda.com/v3/accounts/{accountID}/pricing/stream?instruments=EUR_USD,GBP_USD
 async fn run_oanda_stream(
     config: astra_flash::core::config::ExchangeConfig,
+    ws: astra_flash::core::config::WebSocketConfig,
     order_books: SharedOrderBooks,
     publish_tx: mpsc::Sender<BookSnapshot>,
 ) {
@@ -314,7 +316,12 @@ async fn run_oanda_stream(
 
     // Reconnection loop (policy + stream consumption live in the library so
     // they are testable: astra_flash::network::oanda_stream)
-    let mut policy = OandaReconnectPolicy::new(100);
+    let mut policy = OandaReconnectPolicy::new(&ws);
+    let idle_timeout = idle_timeout_for(ws.read_timeout());
+    info!(
+        "OANDA idle timeout: {:?} (read_timeout_ms={}, floored at 3 heartbeats)",
+        idle_timeout, ws.read_timeout_ms
+    );
 
     loop {
         let Some(attempt) = policy.begin_attempt() else {
@@ -337,24 +344,30 @@ async fn run_oanda_stream(
                     error!("OANDA connection failed: HTTP {}", resp.status());
                     let body = resp.text().await.unwrap_or_default();
                     error!("Response: {}", body);
-                    tokio::time::sleep(policy.http_failure_delay()).await;
-                    continue;
-                }
+                    // fall through to the backoff below (an HTTP 401 used to
+                    // retry on a fixed 5 s cadence outside the policy)
+                } else {
+                    info!("OANDA stream connected!");
+                    policy.on_connected();
 
-                info!("OANDA stream connected!");
-                policy.on_connected();
+                    // Process the streaming response. Any delivered line proves
+                    // the connection good and resets the attempt counter.
+                    let exit = consume_ndjson_stream(resp.bytes_stream(), idle_timeout, |line| {
+                        policy.on_data();
+                        if let Err(e) = process_oanda_message(line, &order_books, &publish_tx) {
+                            debug!("Message processing error: {}", e);
+                        }
+                    })
+                    .await;
 
-                // Process the streaming response
-                let exit = consume_ndjson_stream(resp.bytes_stream(), |line| {
-                    if let Err(e) = process_oanda_message(line, &order_books, &publish_tx) {
-                        debug!("Message processing error: {}", e);
+                    match exit {
+                        StreamExit::Eof => warn!("OANDA stream disconnected, reconnecting..."),
+                        StreamExit::Error(e) => warn!("Stream error: {}", e),
+                        StreamExit::IdleTimeout => warn!(
+                            "OANDA stream silent for {:?} (no heartbeat), reconnecting...",
+                            idle_timeout
+                        ),
                     }
-                })
-                .await;
-
-                match exit {
-                    StreamExit::Eof => warn!("OANDA stream disconnected, reconnecting..."),
-                    StreamExit::Error(e) => warn!("Stream error: {}", e),
                 }
             }
             Err(e) => {

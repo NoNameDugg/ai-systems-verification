@@ -105,8 +105,8 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # 4. Rust components — flight-recorder + market-data adapter.
-  #    Linux runner resolves the local Windows WDAC doctest-exec restriction: blackbox runs its
-  #    FULL set (incl. doctests); flash runs --tests --lib (its doctests are not run in CI).
+  #    blackbox runs its FULL set (incl. doctests); flash runs --tests --lib (its doctests
+  #    are not run in CI; several are illustrative snippets marked ignore).
   # ---------------------------------------------------------------------------
   rust:
     runs-on: ubuntu-latest
@@ -130,10 +130,10 @@ jobs:
       - name: fmt check
         working-directory: ${{ matrix.component }}
         run: cargo fmt --check
-      # clippy is gated for blackbox only. flash cannot be built on the author's Windows
-      # machine (WDAC blocks a dependency's build script), so a flash clippy gate would be
-      # un-iterable locally. Scope is lib + bins + examples: blackbox's test targets carry
-      # five pre-existing lints in test code that are deliberately left untouched.
+      # clippy is gated for blackbox only. flash carries pre-existing lints that are not
+      # cleared yet (a v1.3 candidate), so it is not gated. Scope is lib + bins + examples:
+      # blackbox's test targets carry five pre-existing lints in test code that are
+      # deliberately left untouched.
       - name: clippy (blackbox only)
         if: matrix.component == 'blackbox'
         working-directory: blackbox
@@ -147,3 +147,10 @@ jobs:
         if: matrix.component == 'flash'
         working-directory: flash
         run: cargo test --locked --features blackbox --lib --tests
+      # The Python binding must decode what the binary publishes (external review
+      # 2026-10, finding #18). Builds the pyo3 binding against the runner's python3
+      # and runs the binding unit tests plus the wire-format round-trip.
+      - name: python binding decodes the published wire format
+        if: matrix.component == 'flash'
+        working-directory: flash
+        run: cargo test --locked --features python --lib --test publisher_tests -- bindings wire_compat

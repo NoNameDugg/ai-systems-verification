@@ -69,7 +69,7 @@ use thiserror::Error;
 
 use crate::bindings::types::{PyBookSnapshot, PyMarketEvent};
 use crate::book::BookSnapshot;
-use crate::core::types::{MarketEvent, Timestamp};
+use crate::core::types::{MarketData, MarketEvent, MarketEventType, Timestamp};
 use crate::publisher::pool::{PoolConfig, RedisPool};
 
 // =============================================================================
@@ -139,6 +139,21 @@ pub fn deserialize_event(data: &[u8], format: &str) -> StreamResult<PyMarketEven
     }
 }
 
+/// Decode a published order-book message (`market:orderbook:*`) into a
+/// snapshot `MarketEvent` the iterator can hand to Python.
+fn decode_published_book_event(data: &[u8], format: &str) -> StreamResult<MarketEvent> {
+    let snapshot = deserialize_book_snapshot(data, format)?;
+    let (bids, asks) = (snapshot.bids.clone(), snapshot.asks.clone());
+    Ok(MarketEvent {
+        event_type: MarketEventType::Snapshot,
+        instrument: snapshot.instrument.clone(),
+        timestamp: snapshot.timestamp,
+        local_timestamp: crate::core::types::now_micros(),
+        sequence: None,
+        data: MarketData::Book { bids, asks },
+    })
+}
+
 /// Deserialize a book snapshot from raw bytes.
 ///
 /// # Arguments
@@ -156,19 +171,19 @@ pub fn deserialize_event(data: &[u8], format: &str) -> StreamResult<PyMarketEven
 /// let snapshot = deserialize_book(&bytes, "json")?;
 /// ```
 pub fn deserialize_book(data: &[u8], format: &str) -> StreamResult<PyBookSnapshot> {
+    deserialize_book_snapshot(data, format).map(Into::into)
+}
+
+/// Decode a published order-book message into the internal [`BookSnapshot`].
+fn deserialize_book_snapshot(data: &[u8], format: &str) -> StreamResult<BookSnapshot> {
     match format.to_lowercase().as_str() {
         "json" => {
             // Shared with the publisher side: see gateway::OrderBookSnapshot::decode_published_orderbook.
-            let snapshot: BookSnapshot =
-                crate::gateway::OrderBookSnapshot::decode_published_orderbook(data)
-                    .map_err(|e| StreamError::DeserializationFailed(e.to_string()))?;
-            Ok(snapshot.into())
+            crate::gateway::OrderBookSnapshot::decode_published_orderbook(data)
+                .map_err(|e| StreamError::DeserializationFailed(e.to_string()))
         }
-        "bincode" => {
-            let snapshot: BookSnapshot = bincode::deserialize(data)
-                .map_err(|e| StreamError::DeserializationFailed(e.to_string()))?;
-            Ok(snapshot.into())
-        }
+        "bincode" => bincode::deserialize::<BookSnapshot>(data)
+            .map_err(|e| StreamError::DeserializationFailed(e.to_string())),
         _ => Err(StreamError::UnsupportedFormat(format.to_string())),
     }
 }
@@ -253,7 +268,7 @@ impl PyStreamConfig {
     /// * `group_name` - Consumer group name (optional)
     /// * `consumer_name` - Consumer name (optional)
     #[new]
-    #[pyo3(signature = (topics, format="bincode".to_string(), start_id="$".to_string(), block_ms=5000, count=100, group_name=None, consumer_name=None))]
+    #[pyo3(signature = (topics, format="json".to_string(), start_id="$".to_string(), block_ms=5000, count=100, group_name=None, consumer_name=None))]
     #[must_use]
     pub fn new(
         topics: Vec<String>,
@@ -730,9 +745,17 @@ impl PyStreamIterator {
 
                         let start = std::time::Instant::now();
 
-                        // Try to deserialize as MarketEvent
-                        match deserialize_event(data, &format) {
-                            Ok(event) => {
+                        // The binary publishes gateway::OrderBookSnapshot JSON on
+                        // market:orderbook:*; try that first (it is what Flash
+                        // actually emits), then the internal MarketEvent shape.
+                        let decoded: Option<PyMarketEvent> =
+                            match decode_published_book_event(data, &format) {
+                                Ok(event) => Some(event.into()),
+                                Err(_) => deserialize_event(data, &format).ok(),
+                            };
+
+                        match decoded {
+                            Some(event) => {
                                 let latency = start.elapsed().as_micros() as f64;
                                 {
                                     let mut stats = self.stats.write();
@@ -741,22 +764,8 @@ impl PyStreamIterator {
                                 }
                                 self.buffer.write().push_back(event);
                             }
-                            Err(_) => {
-                                // Try as BookSnapshot
-                                if let Ok(snapshot) = deserialize_book(data, &format) {
-                                    let latency = start.elapsed().as_micros() as f64;
-                                    {
-                                        let mut stats = self.stats.write();
-                                        stats.record_message(data.len() as u64);
-                                        stats.update_latency(latency);
-                                    }
-                                    // Convert snapshot to a simple event-like structure
-                                    // For now, we'll store it as-is and handle differently
-                                    // This is a simplification - in real impl we'd convert properly
-                                    let _ = snapshot; // TODO: Handle book snapshots
-                                } else {
-                                    self.stats.write().record_error();
-                                }
+                            None => {
+                                self.stats.write().record_error();
                             }
                         }
                     }

@@ -993,8 +993,31 @@ impl FlashConfig {
             return Ok(Self::default());
         }
 
-        serde_yaml::from_str(yaml)
-            .map_err(|e| FlashError::ConfigError(format!("YAML parse error: {e}")))
+        let mut config: Self = serde_yaml::from_str(yaml)
+            .map_err(|e| FlashError::ConfigError(format!("YAML parse error: {e}")))?;
+        config.normalize_credentials();
+        Ok(config)
+    }
+
+    /// Treat empty or whitespace-only credential strings as "not configured".
+    ///
+    /// The documented `docker run` leaves `api_key: ""` in the YAML; before v1.2
+    /// that deserialised to `Some("")`, passed the not-configured guard, and the
+    /// binary sent `Authorization: Bearer ` and looped on HTTP 401.
+    fn normalize_credentials(&mut self) {
+        fn clean(v: &mut Option<String>) {
+            if v.as_deref().is_some_and(|s| s.trim().is_empty()) {
+                *v = None;
+            }
+        }
+        for ex in [
+            &mut self.exchanges.oanda,
+            &mut self.exchanges.deribit,
+            &mut self.exchanges.binance,
+        ] {
+            clean(&mut ex.api_key);
+            clean(&mut ex.account_id);
+        }
     }
 
     /// Load configuration from a YAML string with environment variable overrides.
@@ -1166,15 +1189,20 @@ impl FlashConfig {
             config.shadow_mode.namespace = val;
         }
 
-        // OANDA credentials (Sprint E-2 migration from YAML-baked to env-var primary read)
+        config.apply_credential_env_overrides();
+        Ok(config)
+    }
+
+    /// OANDA credentials from the environment (env-var primary read), then
+    /// empty strings normalised to "not configured".
+    fn apply_credential_env_overrides(&mut self) {
         if let Ok(val) = std::env::var("ASTRA_FLASH_OANDA_API_KEY") {
-            config.exchanges.oanda.api_key = Some(val);
+            self.exchanges.oanda.api_key = Some(val);
         }
         if let Ok(val) = std::env::var("ASTRA_FLASH_OANDA_ACCOUNT_ID") {
-            config.exchanges.oanda.account_id = Some(val);
+            self.exchanges.oanda.account_id = Some(val);
         }
-
-        Ok(config)
+        self.normalize_credentials();
     }
 
     /// Merge a YAML overlay into the configuration.
