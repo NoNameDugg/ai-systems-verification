@@ -93,6 +93,9 @@ from the component READMEs: CI emits them.
   them), the wire format is pinned to a committed fixture, and CI builds the `python` feature to run the
   round-trip. Adjacent: the OANDA instrument was built with an empty quote, so the published symbol and
   Redis key read `EUR_USD_`; fixed.
+- Build: pyo3's `extension-module` moved from the dependency to a `python-ext` cargo feature, which the
+  maturin wheel build now enables (`pyproject.toml`); `--features python` builds a library that test binaries
+  can link against libpython (the first CI run of the new step failed to link on Linux for this reason).
 - README: the binary speaks HTTP chunked streaming, not WebSocket; the connector / heartbeat /
   reconnection-manager / adapter layers are labelled prototypes the binary does not use.
 
