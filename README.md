@@ -111,6 +111,10 @@ weakest exhibit, so the shipped set is deliberately small.
 
 ## What this is and isn't (the honest scope)
 
+- **Status: a portfolio project, versioned (see
+  [Releases](https://github.com/NoNameDugg/ai-systems-verification/releases)).** It is not a maintained
+  library: no API-stability promise, but bug reports and reproduction failures are welcome and will be
+  answered.
 - **The platform's central question was answered "no," by test.** It was built to find out whether a
   durable, deployable edge existed in its market at small capital. It did not, as of mid-2026, and four
   independent audits confirmed that conclusion. "Independent" here means a separate AI-agent session
