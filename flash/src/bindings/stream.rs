@@ -158,8 +158,10 @@ pub fn deserialize_event(data: &[u8], format: &str) -> StreamResult<PyMarketEven
 pub fn deserialize_book(data: &[u8], format: &str) -> StreamResult<PyBookSnapshot> {
     match format.to_lowercase().as_str() {
         "json" => {
-            let snapshot: BookSnapshot = serde_json::from_slice(data)
-                .map_err(|e| StreamError::DeserializationFailed(e.to_string()))?;
+            // Shared with the publisher side: see gateway::OrderBookSnapshot::decode_published_orderbook.
+            let snapshot: BookSnapshot =
+                crate::gateway::OrderBookSnapshot::decode_published_orderbook(data)
+                    .map_err(|e| StreamError::DeserializationFailed(e.to_string()))?;
             Ok(snapshot.into())
         }
         "bincode" => {

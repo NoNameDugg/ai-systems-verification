@@ -20,3 +20,5 @@ mod shadow_mode_test;
 mod stream_test;
 mod topics_test;
 mod verification_test;
+
+mod wire_compat_test;

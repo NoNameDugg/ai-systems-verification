@@ -17,9 +17,11 @@
 
 use astra_flash::book::{BookSnapshot, OrderBook};
 use astra_flash::core::metrics::{FLASH_BACKPRESSURE_STATUS, FLASH_MESSAGES_DROPPED_TOTAL};
+use astra_flash::network::oanda_stream::{
+    consume_ndjson_stream, oanda_instrument, OandaReconnectPolicy, StreamExit,
+};
 use astra_flash::prelude::*;
 use astra_flash::publisher::{DualPublisher, DualPublisherConfig, PoolConfig, RedisPool};
-use futures_util::StreamExt;
 use metrics::{counter, gauge};
 use parking_lot::RwLock;
 use rust_decimal::prelude::FromPrimitive;
@@ -150,7 +152,7 @@ async fn main() -> Result<()> {
     if config.exchanges.oanda.enabled {
         let mut books = order_books.write();
         for instrument_name in &config.exchanges.oanda.instruments {
-            let instrument = Instrument::new(instrument_name, "", Exchange::Oanda, instrument_name);
+            let instrument = oanda_instrument(instrument_name);
             books.insert(
                 instrument_name.clone(),
                 OrderBook::with_instrument(instrument),
@@ -310,21 +312,17 @@ async fn run_oanda_stream(
         .build()
         .expect("Failed to create HTTP client");
 
-    // Reconnection loop
-    let mut reconnect_count = 0;
-    let max_reconnects = 100;
+    // Reconnection loop (policy + stream consumption live in the library so
+    // they are testable: astra_flash::network::oanda_stream)
+    let mut policy = OandaReconnectPolicy::new(100);
 
     loop {
-        reconnect_count += 1;
-        if reconnect_count > max_reconnects {
-            error!("Max reconnection attempts ({}) exceeded", max_reconnects);
+        let Some(attempt) = policy.begin_attempt() else {
+            error!("Max reconnection attempts exceeded");
             break;
-        }
+        };
 
-        info!(
-            "Connecting to OANDA stream (attempt {})...",
-            reconnect_count
-        );
+        info!("Connecting to OANDA stream (attempt {})...", attempt);
 
         let response = client
             .get(&stream_url)
@@ -339,59 +337,32 @@ async fn run_oanda_stream(
                     error!("OANDA connection failed: HTTP {}", resp.status());
                     let body = resp.text().await.unwrap_or_default();
                     error!("Response: {}", body);
-                    tokio::time::sleep(Duration::from_secs(5)).await;
+                    tokio::time::sleep(policy.http_failure_delay()).await;
                     continue;
                 }
 
                 info!("OANDA stream connected!");
-                reconnect_count = 0; // Reset on successful connection
+                policy.on_connected();
 
                 // Process the streaming response
-                let mut stream = resp.bytes_stream();
-                let mut buffer = String::new();
-
-                while let Some(chunk_result) = stream.next().await {
-                    match chunk_result {
-                        Ok(chunk) => {
-                            // Append chunk to buffer
-                            if let Ok(text) = std::str::from_utf8(&chunk) {
-                                buffer.push_str(text);
-
-                                // Process complete JSON lines
-                                while let Some(newline_pos) = buffer.find('\n') {
-                                    let line = buffer[..newline_pos].trim().to_string();
-                                    buffer = buffer[newline_pos + 1..].to_string();
-
-                                    if line.is_empty() {
-                                        continue;
-                                    }
-
-                                    // Parse and process the message
-                                    if let Err(e) =
-                                        process_oanda_message(&line, &order_books, &publish_tx)
-                                            .await
-                                    {
-                                        debug!("Message processing error: {}", e);
-                                    }
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            warn!("Stream error: {}", e);
-                            break;
-                        }
+                let exit = consume_ndjson_stream(resp.bytes_stream(), |line| {
+                    if let Err(e) = process_oanda_message(line, &order_books, &publish_tx) {
+                        debug!("Message processing error: {}", e);
                     }
-                }
+                })
+                .await;
 
-                warn!("OANDA stream disconnected, reconnecting...");
+                match exit {
+                    StreamExit::Eof => warn!("OANDA stream disconnected, reconnecting..."),
+                    StreamExit::Error(e) => warn!("Stream error: {}", e),
+                }
             }
             Err(e) => {
                 error!("OANDA connection error: {}", e);
             }
         }
 
-        // Exponential backoff
-        let delay = Duration::from_millis(1000 * reconnect_count.min(30) as u64);
+        let delay = policy.backoff_delay();
         info!("Reconnecting in {:?}...", delay);
         tokio::time::sleep(delay).await;
     }
@@ -400,7 +371,7 @@ async fn run_oanda_stream(
 }
 
 /// Process a single OANDA message (PRICE or HEARTBEAT).
-async fn process_oanda_message(
+fn process_oanda_message(
     json_line: &str,
     order_books: &SharedOrderBooks,
     publish_tx: &mpsc::Sender<BookSnapshot>,
@@ -471,7 +442,7 @@ async fn process_oanda_message(
     }
 
     // Create BookSnapshot for publishing
-    let instrument = Instrument::new(instrument_str, "", Exchange::Oanda, instrument_str);
+    let instrument = oanda_instrument(instrument_str);
 
     let snapshot = BookSnapshot {
         instrument,

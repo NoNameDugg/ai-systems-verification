@@ -34,6 +34,7 @@
 pub mod adapters;
 pub mod connector;
 pub mod heartbeat;
+pub mod oanda_stream;
 pub mod reconnect;
 
 // Re-exports for convenience

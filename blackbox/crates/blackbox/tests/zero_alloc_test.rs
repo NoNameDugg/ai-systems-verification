@@ -338,3 +338,117 @@ fn test_null_tap_inline_eligible() {
     assert!(!tap2.is_active());
     assert!(!tap3.is_active());
 }
+
+// =============================================================================
+// COUNTED VERIFICATION — external review (2026-10) finding #13
+// =============================================================================
+//
+// Everything above this line asserts that NullTap is a ZST and that calling it
+// does not panic. None of it counts an allocation. The review pointed out that a
+// test file named "zero_alloc" that never counts allocations cannot fail when
+// the hot path allocates — and the JournalTap hot path does (`payload.to_vec()`
+// in `JournalWriter::write`). The allocator below counts heap allocations made
+// by the *calling thread* (the writer's background thread is excluded on
+// purpose: it is off the hot path), and the tests assert a delta of zero.
+
+mod counting_alloc {
+    use std::alloc::{GlobalAlloc, Layout, System};
+    use std::cell::Cell;
+
+    thread_local! {
+        static ALLOCS: Cell<usize> = const { Cell::new(0) };
+    }
+
+    pub struct CountingAllocator;
+
+    unsafe impl GlobalAlloc for CountingAllocator {
+        unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+            // `try_with` never allocates for a const-initialised thread-local
+            // and tolerates TLS teardown at thread exit.
+            let _ = ALLOCS.try_with(|c| c.set(c.get() + 1));
+            System.alloc(layout)
+        }
+        unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+            System.dealloc(ptr, layout)
+        }
+    }
+
+    /// Heap allocations made so far by the current thread.
+    pub fn allocations_on_this_thread() -> usize {
+        ALLOCS.with(|c| c.get())
+    }
+}
+
+#[global_allocator]
+static GLOBAL: counting_alloc::CountingAllocator = counting_alloc::CountingAllocator;
+
+/// Run `f` and return how many heap allocations the current thread made.
+fn count_allocations<F: FnOnce()>(f: F) -> usize {
+    let before = counting_alloc::allocations_on_this_thread();
+    f();
+    counting_alloc::allocations_on_this_thread() - before
+}
+
+/// Sanity: the counter sees an allocation when one happens.
+#[test]
+fn counting_allocator_detects_a_box() {
+    let n = count_allocations(|| {
+        let b = Box::new([0u8; 64]);
+        std::hint::black_box(b);
+    });
+    assert!(
+        n >= 1,
+        "the counting allocator must observe a Box allocation"
+    );
+}
+
+/// NullTap: the genuine zero-allocation guarantee, now measured.
+#[test]
+fn null_tap_hot_path_makes_zero_allocations_measured() {
+    let tap = NullTap;
+    let ts = Timestamp::from_micros(1_704_067_200_000_000);
+    let payload = [0xAB_u8; 64];
+    let hash = [0xCD_u8; 32];
+    let n = count_allocations(|| {
+        for _ in 0..10_000 {
+            tap.record_ingress(Exchange::Deribit, &payload, ts);
+            tap.record_internal(1, &payload, ts);
+            tap.record_egress(Exchange::Binance, &payload, ts);
+            tap.record_checkpoint(&hash, ts);
+        }
+    });
+    assert_eq!(n, 0, "NullTap hot path allocated {} times", n);
+}
+
+/// JournalTap: a small payload must reach the ring buffer without a heap
+/// allocation on the calling thread.
+#[test]
+#[ignore = "review #13: JournalWriter::write allocates (payload.to_vec()) on every record"]
+fn journal_tap_small_payload_hot_path_makes_zero_allocations() {
+    use blackbox::journal::{JournalWriter, WriterConfig};
+    use blackbox::tap::JournalTap;
+
+    let dir = tempfile::TempDir::new().unwrap();
+    let path = dir.path().join("zero_alloc.journal");
+    let writer = JournalWriter::new(&path, WriterConfig::minimal()).unwrap();
+    let tap = JournalTap::new(writer);
+    let ts = Timestamp::from_micros(1_704_067_200_000_000);
+    let payload = [0xAB_u8; 64];
+    let hash = [0xCD_u8; 32];
+
+    // warm up: first call may lazily initialise thread-locals / the mutex
+    tap.record_ingress(Exchange::Deribit, &payload, ts);
+    tap.record_checkpoint(&hash, ts);
+
+    let n = count_allocations(|| {
+        for _ in 0..1_000 {
+            tap.record_ingress(Exchange::Deribit, &payload, ts);
+            tap.record_checkpoint(&hash, ts);
+        }
+    });
+    assert_eq!(
+        n, 0,
+        "JournalTap hot path allocated {} times for 2,000 small records",
+        n
+    );
+}

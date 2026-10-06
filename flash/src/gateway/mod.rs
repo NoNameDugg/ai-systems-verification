@@ -300,6 +300,16 @@ impl OrderBookSnapshot {
         serde_json::to_vec(self)
     }
 
+    /// Decode the JSON that `publish_dual` writes to `market:orderbook:*` back
+    /// into the internal [`BookSnapshot`].
+    ///
+    /// This is the single decode path shared by the Python binding, so what
+    /// the binary publishes and what a consumer can read are tested as one
+    /// seam (external review 2026-10, finding #18).
+    pub fn decode_published_orderbook(data: &[u8]) -> Result<BookSnapshot, serde_json::Error> {
+        serde_json::from_slice::<BookSnapshot>(data)
+    }
+
     /// Validate the snapshot has consistent data.
     ///
     /// # Returns

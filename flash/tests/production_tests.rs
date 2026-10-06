@@ -16,6 +16,7 @@
 mod production {
     pub mod config_test;
     pub mod deployment_test;
+    pub mod env_contract_test;
     pub mod health_test;
     pub mod helpers;
     pub mod logging_test;

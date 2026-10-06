@@ -10,3 +10,5 @@ mod adapters_test;
 mod connector_test;
 mod heartbeat_test;
 mod reconnect_test;
+
+mod oanda_stream_test;
