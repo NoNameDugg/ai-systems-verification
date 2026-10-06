@@ -10,7 +10,7 @@
 
 ## Overview
 
-Flash is a high-frequency market data adapter built in Rust. It implements an OANDA (FOREX) Level 2 market-data adapter that connects over WebSocket, reconstructs order books in memory, and distributes data through Redis Streams with Python bindings for downstream consumers. The order book engine, adapter traits, and publisher are general; this build's wired, exercised data path is the OANDA forex feed (scaffolding for other venues exists but is not validated against live exchanges).
+Flash is a high-frequency market data adapter built in Rust. It implements an OANDA (FOREX) Level 2 market-data adapter that consumes OANDA's HTTP chunked pricing stream (newline-delimited JSON, not WebSocket), reconstructs order books in memory, and distributes data through Redis Streams with Python bindings for downstream consumers. The wired, exercised data path is small: `src/main.rs` plus `src/network/oanda_stream.rs` (stream consumer with idle timeout, reconnect policy), the order book, and the dual Redis publisher. The WebSocket connector, heartbeat manager, reconnection manager, exchange-adapter traits, batching/topic-routing publisher layers, order manager and SIMD parser are **prototypes**: tested, but not used by the binary.
 
 ### Status
 
@@ -30,7 +30,9 @@ This is a personal research and portfolio project. It is not deployed in a regul
 ### Known gaps
 
 - The optional `blackbox` flight-recorder integration records ingress and internal events; the egress tap point is not wired.
-- The Python stream binding surfaces delta events but does not yet surface order-book snapshots.
+- The Python stream binding decodes the order-book snapshots the binary publishes (the shared decoder is `gateway::OrderBookSnapshot::decode_published_orderbook`; round-trip tests in `tests/publisher/wire_compat_test.rs`). The signal stream (`astra:signals:*`) is not decoded by the binding.
+- Roughly 70% of `src/` (connector, heartbeat, reconnection manager, adapters, batching, topic routing, order management, parsing) is prototype code the binary does not call; it is kept, tested and labelled rather than deleted.
+- After the configured maximum number of reconnect attempts the stream task exits while the metrics endpoint keeps serving; there is no process-level failure signal.
 
 ### Performance vs Python Shim
 
@@ -118,12 +120,12 @@ spread_bps = book.spread_bps
 ## Features
 
 - **Low-Latency Order Book:** Cached best-price lookups (sub-nanosecond in micro-benchmarks)
-- **OANDA FOREX Adapter:** Wired and exercised; an extensible adapter-trait layer with unvalidated Deribit/Binance scaffolding
+- **OANDA FOREX Adapter:** Wired and exercised (`network::oanda_stream`: HTTP streaming, idle timeout floored at three heartbeats, exponential reconnect backoff that never resets to zero); the adapter-trait layer with Deribit/Binance scaffolding is a prototype
 - **Thread-Safe:** parking_lot RwLock for concurrent access
 - **Redis Streams:** High-throughput data distribution
-- **Python Bindings:** Zero-copy PyO3 integration
+- **Python Bindings:** PyO3 integration that decodes the published wire format (built and tested in CI with `--features python`)
 - **Flight-Recorder Tap (optional `blackbox` feature):** ingress and internal tap points into the `blackbox/` journal; the egress tap is not wired yet
-- **Well-Tested:** 1,221 tests pass in CI (`cargo test --tests --lib`, 37 ignored); 1,231 with `--features blackbox`; plus chaos tests and an operations runbook
+- **Well-Tested:** test counts are emitted by the CI `rust` job (`cargo test --tests --lib`, plus `--features blackbox` and `--features python` runs); chaos tests and an operations runbook
 - **Prometheus Metrics:** Built-in observability
 
 ---
@@ -291,7 +293,7 @@ flash/
 ### Run All Tests
 
 ```bash
-# Run all tests. CI runs `cargo test --tests --lib`: 1,221 tests pass (37 ignored); 1,231 with `--features blackbox`
+# Run all tests. CI runs `cargo test --tests --lib` (counts in the CI log), then `--features blackbox` and `--features python`
 cargo test
 
 # Run with output
@@ -341,7 +343,7 @@ Each module ships its own `README.md` describing design and usage:
 |--------|---------|
 | [src/core/](src/core/README.md) | Core types, configuration, errors, metrics |
 | [src/book/](src/book/README.md) | Order book engine (snapshots, deltas, thread-safe wrapper) |
-| [src/network/](src/network/README.md) | WebSocket connector, reconnection, exchange adapters |
+| [src/network/](src/network/README.md) | `oanda_stream` (wired); WebSocket connector, reconnection manager, exchange adapters (prototypes) |
 | [src/publisher/](src/publisher/README.md) | Redis stream publisher, batching, topic routing |
 | [src/bindings/](src/bindings/README.md) | PyO3 Python bindings |
 | [tests/](tests/README.md) | Test-suite layout (unit, e2e, chaos, production) |

@@ -36,7 +36,7 @@ BlackBox is a **deterministic recording and replay system** designed for high-fr
 
 | Capability | Description |
 |------------|-------------|
-| **Zero-Allocation Recording** | <1.2ns overhead with NullTap, ~110ns with JournalTap |
+| **Allocation-free recording (payloads <= 256 B)** | <1.2ns overhead with NullTap, ~110ns with JournalTap (author-measured; allocations measured by `tests/zero_alloc_test.rs`) |
 | **Deterministic Replay** | Bit-for-bit reproducible execution |
 | **Clock Control** | Pause, step-through, warp-speed replay modes |
 | **State Verification** | SHA-256 based checkpoint comparison |
@@ -319,7 +319,7 @@ Offset  Size  Field              Description
 | StateChange | 0x10 | Internal state change |
 | BookSnapshot | 0x11 | Order book snapshot |
 | BookDelta | 0x12 | Order book delta |
-| Checkpoint | 0x20 | State hash checkpoint |
+| Checkpoint | 0x0003 | State hash checkpoint (48-byte payload: sequence, timestamp, SHA-256) |
 | Heartbeat | 0xFF | Keep-alive marker |
 
 ### SchemaBlock
@@ -473,7 +473,7 @@ In degraded mode:
 
 ```rust
 /// Instrumentation tap for recording events.
-/// Thread-safe (Send + Sync), zero-allocation in hot path.
+/// Thread-safe (Send + Sync); no heap allocation on the hot path for payloads up to 256 bytes.
 pub trait Tap: Send + Sync {
     /// Record incoming WebSocket frame. Target: <100ns
     fn record_ingress(&self, exchange: Exchange, payload: &[u8], timestamp: Timestamp);
@@ -1290,7 +1290,7 @@ let schema_hash = crc32fast::hash(schema_xml.as_bytes());
 | Unit tests (blackbox) | 826 |
 | Integration tests | 23 |
 | Regression tests | 22 |
-| Zero-allocation tests | 15 |
+| Allocation tests (counting allocator) | see CI |
 | Unit tests (blackbox-types) | 25 |
 | Doc-tests | 68 |
 | **Total** | **979** |

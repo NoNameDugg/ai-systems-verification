@@ -60,8 +60,13 @@ pytest tests/race/ -v --count=10   # requires pytest-repeat (not in requirements
 ## Safety Guarantees
 
 These tests verify:
-1. No race conditions in gate evaluation
-2. No deadlocks under any scenario
-3. Proper timeout handling
-4. State consistency under stress
+1. No deadlocks under any scenario
+2. Proper timeout handling
+3. State consistency under stress
+4. Serialisation of same-basket approvals under concurrency — **only**
+   `test_review_v12_race.py::test_concurrent_same_basket_never_exceeds_limit` and
+   `::test_lock_timeout_waiter_is_hard_blocked_with_reason` can detect a missing lock; an outside review
+   (2026-10) showed the other 28 tests here pass with the gate's lock replaced by a no-op, because they
+   assert only completion counts, valid decision strings, or weak inequalities. Run the suite with the
+   lock removed before trusting a new race test.
 

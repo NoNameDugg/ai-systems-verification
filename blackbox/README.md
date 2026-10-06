@@ -12,11 +12,11 @@ BlackBox is a **deterministic recording and replay system** for high-frequency t
 ## Features
 
 - **Zero-Overhead Recording** - NullTap adds ~1.2ns overhead; JournalTap adds ~110ns (author-measured; see Performance)
-- **Deterministic Replay** - Bit-for-bit reproducible execution
+- **Deterministic Replay** - Bit-for-bit reproducible execution from an in-memory frame source; replaying a journal *file* through the replay engine is a prototype (not wired)
 - **Clock Control** - Pause, step-through, fast-forward, and warp-speed modes
-- **State Verification** - SHA-256 checkpoint comparison during replay
+- **State Verification** - 48-byte SHA-256 checkpoints written by the tap and read by the verifier (one format, one constant); `blackbox verify` checks structure and sequence and never reports PASS without a state hasher
 - **Self-Describing Format** - Embedded SBE schema (self-describing); generic decoding of unknown schema versions is not implemented
-- **Feature-Complete (portfolio project)** - Multi-platform support, 979 tests (as reported by CI; a further 18 doctests are `ignore`d)
+- **Portfolio project** - Multi-platform support; test counts are emitted by CI, not typed here
 
 ## Performance
 
@@ -330,15 +330,15 @@ cargo bench
 
 ### Test Coverage
 
-| Category | Tests |
+| Category | Where |
 |----------|-------|
-| Unit tests (blackbox) | 826 |
-| Integration tests | 23 |
-| Regression tests | 22 |
-| Zero-allocation tests | 15 |
-| Unit tests (blackbox-types) | 25 |
-| Doc-tests | 68 |
-| **Total** | **979** (as reported by CI; a further 18 doctests are `ignore`d) |
+| Unit tests (blackbox, blackbox-types) | `#[cfg(test)]` modules in `src/` |
+| Integration / regression tests | `tests/integration_tests.rs`, `tests/regression_tests.rs` |
+| External-review reproductions | `tests/external_review_v12.rs` (committed failing in v1.2, then fixed) |
+| Allocation tests | `tests/zero_alloc_test.rs` — a counting allocator measures the hot path: 0 allocations for NullTap and for JournalTap payloads up to 256 bytes |
+| Doc-tests | run by CI (`cargo test`) |
+
+Counts are emitted by the CI `rust` job (`.github/workflows/ci.yml`), not typed here.
 
 ---
 

@@ -23,7 +23,10 @@ this file; and nothing here contains a credential or a byte of licensed data.
 - **A self-proving verification harness — proof-of-concept-grade rigor.** The centerpiece evaluates
   statistical and machine-learning models, and it must first prove *itself*: recover an answer
   deliberately planted in synthetic data and reject one deliberately leaked, before it is trusted on
-  anything real.
+  anything real. In v1.1 that self-proof was weaker than this sentence: an outside review found that
+  no end-to-end run had ever reached the harness's own DEPLOY verdict and that its leakage test could
+  not detect leakage. v1.2 fixes both and keeps the review's reproductions as tests (see
+  [`CHANGELOG.md`](CHANGELOG.md)).
 - **CI and cross-component integration.** A sibling-free Linux pipeline builds and tests every component
   from scratch on each push, and the two Rust components integrate through an optional, separately
   tested feature seam.
@@ -76,23 +79,29 @@ the tooling that decides whether a model's result is real.
 
 ### `blackbox/` — a deterministic flight-recorder
 A Rust journaling engine whose hot path hands records to a background memory-mapped writer through a
-lock-free SPSC ring buffer, with microsecond timestamps and SHA-256-verified replay, so any live session
-can be reconstructed exactly. This is data infrastructure, not AI — and it is what makes the
-rest verifiable: you cannot verify a system you cannot replay.
+lock-free SPSC ring buffer, with microsecond timestamps and SHA-256 state checkpoints. The tap, the
+journal, the reader and the checkpoint verifier are wired end-to-end and tested together; replaying a
+journal *file* through the replay engine (as opposed to an in-memory frame source) is a prototype and
+not wired yet. This is data infrastructure, not AI — and it is what makes the rest verifiable: you
+cannot verify a system you cannot replay.
 **Demonstrates: Rust systems programming, lock-free SPSC buffering, deterministic replay.**
 
 ### `flash/` — an async real-time data adapter
-A zero-allocation async Rust engine that ingests and normalizes a live streaming feed — a broker's
-(OANDA) Level-2 price data — with a PyO3 Python binding. It is the low-latency front door of the data
-path. It optionally taps into the `blackbox/` flight-recorder (the `blackbox` feature; ingress and
+An async Rust engine that ingests and normalizes a live streaming feed — a broker's (OANDA) Level-2
+price data over HTTP chunked streaming — with a PyO3 Python binding. The wired path is small (the
+stream consumer, reconnect policy, order book and Redis publisher); the WebSocket connector,
+heartbeat, reconnection-manager and exchange-adapter layers are tested prototypes the binary does not
+use. It is the low-latency front door of the data path. It optionally taps into the `blackbox/` flight-recorder (the `blackbox` feature; ingress and
 internal tap points) for deterministic replay — two independently tested components in this repo integrating through a clean
 seam.
 **Demonstrates: async Rust, high-throughput stream processing, FFI.**
 
 ### `correlation-gate/` — a fail-closed safety gate
-A thread-safe semaphore that stops concurrent processes from stacking correlated exposure. It fails
-*closed*: if it cannot prove an action is safe, it rejects it. Extensively tested (unit, integration,
-concurrency, chaos) with 99% line coverage measured by `pytest --cov=src`; the wall-clock perf benchmarks are opt-in (`--runperf`).
+A thread-safe semaphore that stops concurrent callers in one process from stacking correlated
+exposure (it is an in-process library; nothing is shared across processes). It fails *closed*: if it
+cannot prove an action is safe, it rejects it. Extensively tested (unit, integration, concurrency,
+chaos); the concurrency tests include one that fails when the gate's lock is removed, and the CI job
+enforces the line-coverage floor with `pytest --cov=src`. The wall-clock perf benchmarks are opt-in (`--runperf`).
 **Demonstrates: concurrency, defensive systems design, rule-based safety controls.**
 
 ---
@@ -132,7 +141,9 @@ weakest exhibit, so the shipped set is deliberately small.
   "independent" defined above). I say so plainly because the point of this repository is how the work
   was verified, not who typed it.
 - **Honest framing throughout.** Every claim here is meant to match the code; if you find one that
-  doesn't, that's a bug and I want to know.
+  doesn't, that's a bug and I want to know. An outside review did exactly that in October 2026 and
+  found a gap in every component's main promise behind green tests; v1.2.0 reproduces each finding as
+  a failing test first, fixes it, and lists them plainly in [`CHANGELOG.md`](CHANGELOG.md).
 - **A word you will see:** ASTRA was the platform's internal name; it survives in package and topic names.
 
 ---

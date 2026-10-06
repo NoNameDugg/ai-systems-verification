@@ -23,7 +23,7 @@
 
 BlackBox is a flight recorder for the trading system. It provides:
 
-- **Zero-allocation journaling**: <1μs overhead in production
+- **Allocation-free journaling for small records**: payloads up to 256 bytes reach the ring buffer with no heap allocation (measured); <1μs overhead (author-measured)
 - **Deterministic replay**: Bit-for-bit reproducible executions
 - **State verification**: Checkpoint-based regression testing
 - **10-year readability**: Self-describing journal format
@@ -394,7 +394,8 @@ hasher.update_sequence(orderbook.sequence_number);
 let state_hash = hasher.finalize();
 
 // Record checkpoint
-tap.record_checkpoint(sequence_number, timestamp, state_hash.as_bytes());
+// (the tap keeps its own checkpoint sequence counter and writes the 48-byte verifier layout)
+tap.record_checkpoint(state_hash.as_bytes(), timestamp);
 ```
 
 ### Comparison Reports
@@ -404,10 +405,13 @@ use blackbox::verify::{ReplayComparator, ComparisonReport};
 
 let mut comparator = ReplayComparator::new();
 
-// Add results during replay
-comparator.record_match(checkpoint, computed_hash);
-// or
-comparator.record_mismatch(checkpoint, expected_hash, actual_hash);
+// Compare each recorded checkpoint against the recomputed state hash during replay
+let result = comparator.compare(
+    checkpoint.sequence(),
+    checkpoint.timestamp(),
+    checkpoint.state_hash(),
+    &computed_hash,
+);
 
 // Generate report
 let report = ComparisonReport::from_comparator(&comparator);

@@ -182,11 +182,12 @@ pub enum LogFormat {
 pub struct WebSocketConfig {
     /// Connection timeout for initial WebSocket handshake (ms).
     pub connect_timeout_ms: u64,
-    /// Read timeout - force reconnect if no data received for this duration (ms).
+    /// Read (idle) timeout - force reconnect if no data received for this duration (ms).
     ///
-    /// OANDA streams heartbeats every ~5s. If we receive nothing for 5 seconds,
-    /// the connection is dead. Don't rely on TCP keepalives - they're too slow
-    /// (minutes) for trading systems.
+    /// OANDA streams heartbeats every ~5s. Don't rely on TCP keepalives - they're
+    /// too slow (minutes) for trading systems. The OANDA stream task floors this
+    /// at three heartbeat intervals (`network::oanda_stream::idle_timeout_for`) so a
+    /// single late heartbeat does not cause a reconnect.
     pub read_timeout_ms: u64,
     /// Interval between ping messages to keep connection alive (ms).
     pub ping_interval_ms: u64,

@@ -10,8 +10,9 @@
 # Recommended only after shadow-mode validation (see flash.shadow.yaml) has
 # confirmed price-match parity and stable continuous operation.
 #
-# Rollback: set ASTRA_FLASH_SHADOW_MODE_ENABLED=true to revert to shadow mode
-# (writes to the :rust: namespace) without a redeploy.
+# Rollback NOTE: ASTRA_FLASH_SHADOW_MODE_ENABLED is read into the config but the
+# binary currently constructs its publisher with default settings, so flipping it
+# does NOT change the namespace. Rollback needs a redeploy with a changed publisher.
 # =============================================================================
 
 # PRODUCTION: Shadow Mode Disabled
@@ -23,7 +24,7 @@ shadow_mode:
 # WebSocket settings (production-optimized)
 websocket:
   connect_timeout_ms: 5000
-  read_timeout_ms: 5000    # Force reconnect if no data for 5s
+  read_timeout_ms: 5000    # idle timeout; the binary floors it at 3 OANDA heartbeats (15 s)
   ping_interval_ms: 30000
   pong_timeout_ms: 10000
   max_reconnect_attempts: 10
@@ -131,8 +132,8 @@ metrics:
 #    - Alert if dropped_frames > 0
 #
 # 4. Connectivity:
-#    - Monitor reconnect_count metric
-#    - Alert if reconnections > 5/hour
+#    - The binary logs each reconnect attempt and idle timeout; it does not emit a
+#      reconnect_count metric (only backpressure status and dropped-message counters)
 #
 # 5. Resource Usage:
 #    - Monitor memory usage (target: <10MB)

@@ -10,7 +10,7 @@ In high-frequency and complex algorithmic trading, bugs often occur due to speci
 
 ### 3.1. The Recorder (Write-Path)
 *   **Tap Points**: Placed at the ingress (Market Data) and egress (Orders) of the system.
-*   **Format**: **Simple Binary Encoding (SBE)** or a flat binary struct format for zero-allocation logging. Text/JSON is too slow and large.
+*   **Format**: **Simple Binary Encoding (SBE)** or a flat binary struct format for allocation-free logging of small records. Text/JSON is too slow and large.
 *   **Strategy**: "Journaling". Every incoming packet from the exchange is written to the journal *before* being processed.
 
 ### 3.2. The Replayer (Read-Path)

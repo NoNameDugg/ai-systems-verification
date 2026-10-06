@@ -27,7 +27,7 @@ BlackBox captures every critical event during trading sessions, enabling exact r
 
 | Feature | Description |
 |---------|-------------|
-| **Zero-Allocation Journaling** | <1μs overhead, MMAP-based writes |
+| **Allocation-free journaling (payloads <= 256 B)** | <1μs overhead, MMAP-based writes |
 | **Deterministic Replay** | Bit-for-bit reproducible execution |
 | **State Verification** | SHA-256 checkpoint comparison |
 | **Self-Describing Format** | 10-year readability guarantee |

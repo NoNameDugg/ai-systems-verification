@@ -14,7 +14,7 @@
 | JournalTap overhead | <1μs | ~110ns | **PASS** |
 | Full trading cycle | <1μs | ~337ns | **PASS** |
 | Sustained throughput | >50k msg/s | 10M msg/s | **PASS** |
-| Hot path allocations | 0 | 0 | **PASS** |
+| Hot path allocations (payloads <= 256 B) | 0 | 0 (measured by `tests/zero_alloc_test.rs`) | **PASS** |
 
 ---
 
@@ -171,12 +171,12 @@ assert_eq!(std::mem::size_of::<RecordHeader>(), 24);   // Fixed header
 
 | Path | Allocations | Notes |
 |------|-------------|-------|
-| NullTap::record_* | 0 | Completely eliminated |
-| JournalTap::record_* | 1* | payload.to_vec() |
-| JournalWriter::write | 0 | Pre-allocated ring buffer |
-| JournalReader::next | 0 | Zero-copy MMAP read |
+| NullTap::record_* | 0 | Completely eliminated (measured) |
+| JournalTap::record_* / JournalWriter::write | 0 for payloads <= `INLINE_PAYLOAD_SIZE` (256 B); 1 above | payload copied into the ring-buffer slot; larger payloads take one heap buffer (measured by `tests/zero_alloc_test.rs`) |
+| JournalReader::next | 1 | the record payload is copied out of the MMAP (`to_vec`) |
 
-*JournalTap allocates for payload copy to ring buffer. This is acceptable as the allocation happens in the background path.
+Until v1.2 `JournalWriter::write` allocated once per record (`payload.to_vec()`) while this table said 0, and the
+allocation tests counted nothing; an outside review caught it.
 
 ### Ring Buffer Configuration
 

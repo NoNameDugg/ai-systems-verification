@@ -20,7 +20,9 @@ new signal.
 
 - **Fail-closed** - Any error (provider failure, timeout, bad config) results in
   a block rather than letting a trade through.
-- **Thread-safe** - RLock-based protection so it can be called concurrently.
+- **Thread-safe (in one process)** - RLock-based protection so it can be called concurrently from
+  threads. It is an in-process library: two processes each get an independent gate; nothing is
+  shared between them.
 - **Dual-metric gating** - Limits exposure by both position *count* and
   *notional* per currency direction.
 - **Pluggable providers** - Read positions from OANDA, an in-memory store, or a
@@ -30,10 +32,11 @@ new signal.
 
 ### Testing
 
-The suite collects **456 tests**. The default run reports **420 passed, 36 skipped** (the 36 are
-wall-clock perf tests, opt-in via `--runperf`, which reports **455 passed, 1 skipped**). Line coverage
-measured with `python -m pytest --cov=src` is **99%** (12 statements missed; the statement total is
-1,397 under Python 3.14 and 1,477 under 3.12, as the CI job logs show). See [Testing](#testing) for how
+Test and coverage figures are emitted by the CI job (`python -m pytest --cov=src --cov-fail-under=95`),
+not typed here; the wall-clock perf tests are opt-in via `--runperf`. The concurrency suite includes a
+test that fails when the gate's lock is replaced by a no-op (`tests/race/test_review_v12_race.py`),
+added in v1.2 after an outside review showed the 28 earlier race tests all passed without the lock.
+See [Testing](#testing) for how
 to run it.
 
 ---
@@ -237,16 +240,23 @@ suites under `tests/`.
 
 ### Environment Variables
 
+The library reads **no** environment variables and **no** YAML itself: configuration is passed in code
+(`GateConfig`, `OandaConfig`). The names below are the ones a host application would typically map onto
+those objects; `config/gate_config.example.yaml` is an illustration of the same fields, not a file the
+gate loads.
+
 ```bash
-# OANDA Configuration
+# OANDA Configuration (map to OandaConfig)
 OANDA_ACCOUNT_ID=your_account_id
 OANDA_API_TOKEN=your_api_token
-OANDA_API_URL=https://api-fxpractice.oanda.com
 
-# Gate Thresholds (optional)
+# Gate Thresholds (map to GateConfig)
 GATE_SOFT_WARNING_THRESHOLD=2
 GATE_HARD_BLOCK_THRESHOLD=3
 ```
+
+For gold (XAU) signals the host must also call `gate.update_spot_prices({"XAU_USD": price})`; without a
+spot price the gate refuses the signal (fail closed) rather than sizing it at a placeholder.
 
 ### Configuration File
 

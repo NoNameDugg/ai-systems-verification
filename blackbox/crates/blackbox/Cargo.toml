@@ -3,7 +3,7 @@ name = "blackbox"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Flight Recorder for trading systems - Zero-allocation journaling and replay"
+description = "Flight Recorder for trading systems - allocation-free journaling for small records, deterministic replay"
 
 [dependencies]
 blackbox-types.workspace = true

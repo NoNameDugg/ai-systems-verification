@@ -63,9 +63,12 @@ python validate_your_strategy.py data/leaky_synthetic.csv
 These are the argument. A harness that cannot catch a bug you planted on purpose cannot be
 trusted to catch one you didn't.
 
-Recover a planted edge, and stay silent when there is none (`forkb`):
+Recover a planted edge all the way to a `DEPLOY` verdict, and stay silent when there is none (`forkb`):
+- `tests/test_review_v12.py::test_strong_planted_edge_reaches_deploy_end_to_end` (every gate at its
+  frozen default; added in v1.2 after an outside review found no run had ever reached DEPLOY)
 - `tests/test_integration.py::test_injected_edge_recovered_as_positive_alpha`
 - `tests/test_integration.py::test_no_edge_no_spurious_edge_and_no_false_deploy`
+- `tests/test_review_v12.py::test_one_lucky_cell_in_twenty_is_rejected_after_holm`
 - `tests/test_permnull.py::test_correlated_labels_real_edge_passes`
 - `tests/test_permnull.py::test_noise_labels_not_significant` (parametrized over four seeds)
 
@@ -76,9 +79,15 @@ Reject a deliberately leaked, look-ahead pair (`rank_ic_gate`):
 - `test_pit_validator.py::test_pairs_pit_flags_lookahead`
 - `test_signal_return_pairer.py::test_assert_no_lookahead_raises_on_violation`
 
-Recover a non-linear signal, and return null on pure noise without leaking (`ml_xsect`):
+Recover a non-linear signal, return null on pure noise, and prove the purge is doing something
+(`ml_xsect`):
 - `tests/test_model.py::test_cpcv_recovers_nonlinear_signal`
-- `tests/test_model.py::test_cpcv_pure_noise_is_null_no_leakage`
+- `tests/test_model.py::test_cpcv_pure_noise_is_null`
+- `tests/test_model.py::test_purge_removes_the_leak_it_is_for` (a fixture where leakage is possible;
+  the same seeds with the purge disabled inflate the out-of-sample IC)
+
+Every key in the frozen, hashed configs is read by code (`tests/test_review_v12.py` in `forkb` and
+`ml_xsect` enumerate the fields and fail otherwise), so the freeze hash covers exactly what runs.
 
 Run any one of them with `python -m pytest <path>::<name>` from the package directory.
 
