@@ -140,6 +140,7 @@ weakest exhibit, so the shipped set is deliberately small.
 cd gauntlet/forkb        && pip install -r requirements.txt && python -m pytest   # ~11-15 min
 cd gauntlet/rank_ic_gate && pip install -r requirements.txt && python -m pytest
 cd gauntlet/ml_xsect     && pip install -r requirements.txt && python -m pytest
+cd gauntlet/examples     && pip install -r requirements.txt && python -m pytest
 cd correlation-gate      && pip install -r requirements.txt && python -m pytest
 
 # Rust components:
@@ -150,3 +151,9 @@ cd flash    && cargo test
 The [CI workflow](.github/workflows/ci.yml) runs these same commands (flash with `--tests --lib`, i.e.
 without doctests) on a clean Linux runner, across Python 3.12 and 3.14 — so the numbers it reports are
 the numbers you'll get.
+
+**To point the gauntlet at your own signal**, see
+[Validate your own strategy in five minutes](gauntlet/examples/README.md): one CSV
+(`timestamp, signal, available_at, price`) in, seven one-line verdicts out — timing, pairing, rank-IC
+and power, two nulls, lag sensitivity, cost, and multiple testing — ending in `VERDICT: PASS` or
+`VERDICT: FAIL-<reason>`.

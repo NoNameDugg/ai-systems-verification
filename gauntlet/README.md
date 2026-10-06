@@ -4,7 +4,8 @@ Three self-contained Python packages whose job is to **kill** a candidate result
 Each one runs on synthetic fixtures with a known answer and has to pass its own self-proof first:
 recover an effect that was deliberately planted, and reject one that was deliberately leaked or is
 pure noise. None of them needs a licensed dataset or anything outside its own directory; CI runs
-all three on a clean Linux runner under Python 3.12 and 3.14.
+all three, plus the bring-your-own-strategy example below, on a clean Linux runner under Python 3.12
+and 3.14.
 
 ## The packages
 
@@ -40,6 +41,22 @@ cd gauntlet/ml_xsect     && pip install -r requirements.txt && python -m pytest
 ```
 
 Test counts are emitted by the CI `gauntlet` jobs (`.github/workflows/ci.yml`), not typed here.
+
+## Bring your own strategy
+
+[`examples/`](examples/README.md) — *Validate your own strategy in five minutes.* One CSV with
+`timestamp, signal, available_at, price` (and optionally `cost_bps`) goes through seven checks in
+order — point-in-time stamps, causal pairing, rank-IC with a power read, random-entry and
+shuffled-label nulls, lag-one-bar sensitivity, a cost hurdle, and a Holm correction for the number of
+variants you tried — each printing a one-line verdict, ending in `VERDICT: PASS` or
+`VERDICT: FAIL-<reason>` naming the check that killed it. Two synthetic demo files ship with it: one
+with a planted real edge (passes), one with the classic stamp error (fails at check 1).
+
+```bash
+cd gauntlet/examples && pip install -r requirements.txt
+python validate_your_strategy.py data/clean_synthetic.csv
+python validate_your_strategy.py data/leaky_synthetic.csv
+```
 
 ## The self-proof tests, by name
 

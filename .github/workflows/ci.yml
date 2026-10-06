@@ -55,7 +55,9 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # 2. The gauntlet (Python) — must pass on SYNTHETIC fixtures alone, with no
-  #    licensed dataset and no sibling repo anywhere on the runner.
+  #    licensed dataset and no sibling repo anywhere on the runner. `examples`
+  #    is the bring-your-own-strategy entry point; it imports rank_ic_gate from
+  #    this checkout (that is the one in-repo dependency it is allowed).
   # ---------------------------------------------------------------------------
   gauntlet:
     runs-on: ubuntu-latest
@@ -63,7 +65,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [ "3.12", "3.14" ]
-        package: [ forkb, rank_ic_gate, ml_xsect ]
+        package: [ forkb, rank_ic_gate, ml_xsect, examples ]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

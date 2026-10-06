@@ -38,3 +38,8 @@ _artifacts/
 quality_review/
 *.coverage
 .benchmarks/
+
+# The one exception to *.csv: two tiny SYNTHETIC demo files for the bring-your-own-strategy example,
+# regenerated deterministically by gauntlet/examples/make_demo_data.py. Not market data.
+!gauntlet/examples/data/clean_synthetic.csv
+!gauntlet/examples/data/leaky_synthetic.csv
