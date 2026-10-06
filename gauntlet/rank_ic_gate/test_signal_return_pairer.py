@@ -1,7 +1,8 @@
 """
-TDI tests for signal_return_pairer (Sprint AV-ALTDATA-IC Track-1, charter T1.1, Q5 PIT).
+Tests for signal_return_pairer: point-in-time-invariant pairing of a bar-stamped signal with its forward
+return (entry strictly after available_at, raise on any violation, freshness guard).
 
-Run:  python -m pytest scripts/backtester/rank_ic_gate/test_signal_return_pairer.py -q
+Run:  python -m pytest test_signal_return_pairer.py -q   (from this directory)
 """
 import os
 import sys

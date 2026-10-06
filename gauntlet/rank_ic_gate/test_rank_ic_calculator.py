@@ -1,7 +1,7 @@
 """
-TDI tests for rank_ic_calculator (Sprint AV-ALTDATA-IC Track-1, charter T1.1/D-SOFT-7).
+Tests for rank_ic_calculator: Spearman rank-IC with the Fisher-z standard error and tanh confidence interval.
 
-Run:  python -m pytest scripts/backtester/rank_ic_gate/test_rank_ic_calculator.py -q
+Run:  python -m pytest test_rank_ic_calculator.py -q   (from this directory)
 """
 import os
 import sys

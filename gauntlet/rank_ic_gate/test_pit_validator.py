@@ -1,7 +1,8 @@
 """
-TDI tests for pit_validator (Sprint AV-ALTDATA-IC Track-1, charter T1.1 backtest PIT).
+Tests for pit_validator: the backtest point-in-time audit (every signal available strictly after its
+bar and strictly before the forward window it is paired against).
 
-Run:  python -m pytest scripts/backtester/rank_ic_gate/test_pit_validator.py -q
+Run:  python -m pytest test_pit_validator.py -q   (from this directory)
 """
 import os
 import sys

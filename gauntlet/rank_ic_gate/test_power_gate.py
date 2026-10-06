@@ -1,7 +1,8 @@
 """
-TDI tests for power_gate (Sprint AV-ALTDATA-IC Track-1, charter T1.3/D-HARD-1/v2-DS-1).
+Tests for power_gate: the corrected correlation variance-inflation power gate (effective N from both
+autocorrelations) and the horizon-to-power coupling it must reproduce.
 
-Run:  python -m pytest scripts/backtester/rank_ic_gate/test_power_gate.py -q
+Run:  python -m pytest test_power_gate.py -q   (from this directory)
 """
 import os
 import sys

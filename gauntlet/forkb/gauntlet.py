@@ -27,7 +27,7 @@ import fundamental_factors as ff_mod
 
 def _eff_n(name_daily: pd.DataFrame, labels_union: set) -> float:
     """Cross-sectional eff-N (eigenvalue participation ratio) of the traded names' return corr matrix.
-    Noise screen (necessary-not-sufficient; charter §4). >3.84 = more than ~1 factor above noise."""
+    Noise screen (necessary, not sufficient). >3.84 = more than ~1 factor above noise."""
     cols = [c for c in name_daily.columns if c in labels_union]
     R = name_daily[cols].dropna(how="all").dropna(axis=1, how="any")
     if R.shape[1] < 2 or R.shape[0] < 10:
@@ -75,9 +75,10 @@ def run_gauntlet(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW", perm_n
                  require_cost_calibration: bool = False) -> dict:
     out: dict = {"config_sha256": cfg.sha256(), "book": book, "cadence": cadence}
 
-    # ★ BC pre-flight (DEC-333): fail loud, not silent. perm-embargo must cover the hold (DEC-327 embargo-leak bug).
+    # Pre-flight: fail loud, not silent. The permutation-null embargo must cover the holding period, or the
+    # null leaks the held window.
     if cfg.perm_embargo_td < cfg.hold_td:
-        raise ValueError(f"perm_embargo_td ({cfg.perm_embargo_td}) must be >= hold_td ({cfg.hold_td}) (DEC-327)")
+        raise ValueError(f"perm_embargo_td ({cfg.perm_embargo_td}) must be >= hold_td ({cfg.hold_td}): the permutation embargo must cover the hold")
 
     # 0) Canary HALT-gate (gates everything)
     canary = tr_canary.run_canary(snap, cfg)
@@ -86,7 +87,8 @@ def run_gauntlet(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW", perm_n
         out["verdict"] = "HALT-CANARY"
         return out
 
-    # 1) book — H1 PEAD (pead_book) / BC NSI (nsi_book) / BD profitability (profitability_book) — both emit active_mask
+    # 1) book — post-earnings drift (pead_book) / net-share-issuance (nsi_book) / profitability (profitability_book);
+    #    each emits active_mask
     if book == "nsi":
         bk = harness.nsi_book(snap, cfg, weighting=weighting, cadence=cadence)
     elif book == "prof":
@@ -95,8 +97,8 @@ def run_gauntlet(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW", perm_n
         bk = harness.pead_book(snap, cfg, weighting=weighting)
     active_mask = bk.get("active_mask")                       # None for pead (always-in-position overlapping cohorts)
     out["n_formations"] = bk["n_formations"]
-    out["max_short_weight"] = bk["max_short_weight"]        # S2 C2: report the C-2 squeeze-injector weight input
-    if "stale_dropped_frac" in bk:                          # ★ BD S2-AMEND: stale-incidence (how many slots the cap dropped)
+    out["max_short_weight"] = bk["max_short_weight"]        # reported: the largest single short weight (squeeze-risk input)
+    if "stale_dropped_frac" in bk:                          # stale-incidence: how many candidate slots the staleness cap dropped
         out["stale_dropped_frac"] = bk["stale_dropped_frac"]
         out["stale_dropped_total"] = bk["stale_dropped_total"]
         out["n_cand_pool_total"] = bk["n_cand_pool_total"]
@@ -104,8 +106,9 @@ def run_gauntlet(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW", perm_n
     if raw.empty or bk["n_formations"] < 4:
         out["verdict"] = "NULL"; out["reason"] = "no book"; return out
 
-    # ★ G.3 P3 non-vacuity (S2 N2: tie to the GATED QoQ path, not the cost flag — the annual diagnostic is
-    #   capped-PROMISING so its vacuous-COVID window is acceptable; the gated verdict must NOT be vacuously stressed).
+    # Short-leg (P3) stress-window non-vacuity is tied to the GATED quarterly path, not the cost flag: the annual
+    #   diagnostic is capped at PROMISING, so an empty 2020 stress window is acceptable there; the gated verdict
+    #   must NOT be vacuously stressed.
     if (book == "nsi" and cadence == "qoq_nonoverlap") or book == "prof":   # ★ prof is rolling/continuous → must stress real windows
         act_dates = raw.index[active_mask.reindex(raw.index).fillna(False).values] if active_mask is not None else raw.index
         for (lo, hi) in cfg.p3_stress_windows:
@@ -115,8 +118,8 @@ def run_gauntlet(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW", perm_n
     # 2) costs -> net (raw book, charged turnover + short borrow)
     band = cost_mod.conservative_band_bps(snap.sep, snap.daily, cfg,
                                           calibration_set=(cfg.cost_calibration_set or None),
-                                          require_calibration=require_cost_calibration)   # ★ D-HARD D (BC gated run)
-    # ★ E-2 (S2): charge the PER-LEG band (weight the illiquid short leg in), NOT the global-median scalar
+                                          require_calibration=require_cost_calibration)   # cost calibration is required on a gated run
+    # charge the PER-LEG band (weight the illiquid short leg in), NOT the global-median scalar
     fl = list(bk["formation_labels"].values())
     long_names = set().union(*[set(l[l > 0].index) for l in fl]) if fl else set()
     short_names = set().union(*[set(l[l < 0].index) for l in fl]) if fl else set()
@@ -127,7 +130,7 @@ def run_gauntlet(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW", perm_n
     long_band, short_band = _legband(long_names), _legband(short_names)
     band_bps = 0.5 * (long_band + short_band)            # dollar-neutral: ~half long / half short turnover
     out["cost_band_bps"] = band_bps; out["cost_long_band_bps"] = long_band; out["cost_short_band_bps"] = short_band
-    # ★ E-1 (S2): the data-derived decile-uplift is a Phase-0/run-time fit; until then this is the CS+anchor PLACEHOLDER
+    # the data-derived decile-uplift is a run-time fit; until it is fitted this is the CS+anchor PLACEHOLDER
     # (CS×1.75 + the external-anchor max() floor). A deployable-grade verdict REQUIRES a fitted decile multiplier.
     out["cost_mode"] = ("CALIBRATED(fitted decile-multiplier)" if (cfg.cost_calibration_set and require_cost_calibration)
                         else "PLACEHOLDER(CSx1.75+anchor; data-derived decile-uplift calibration REQUIRED for deployable-grade)")
@@ -140,7 +143,7 @@ def run_gauntlet(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW", perm_n
     resid = res["resid"].dropna()
     out["alpha_daily"] = float(res["alpha"])
     out["alpha_t"] = float(res["alpha_t"])
-    out["resid_betas"] = res["betas"]            # ★ §4 deliverable (S2-folded): the GATED 5-factor loadings (no RMW/CMA)
+    out["resid_betas"] = res["betas"]            # reported: the GATED 5-factor loadings (no RMW/CMA)
 
     # ★ G.1 INTERPRETATION residual (NON-GATING): adds CMA/RMW only to LABEL novel-vs-known-factor. NSI≈CMA, so
     #   gating on it would strip the signal → a by-construction false-NULL (inverse-RT-A). It NEVER feeds the verdict.
@@ -153,7 +156,7 @@ def run_gauntlet(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW", perm_n
                              "label": "KNOWN-FACTOR" if _known else "NOVEL"}
 
     # 4) block unit (the time-series-independent N) on the residual net. ★ For the NSI book, count ACTIVE blocks
-    #    ONLY (S2 #3 / D-HARD B): zero-filled flat days must not inflate the count past m2_min_blocks (landmine #2:
+    #    ONLY: zero-filled flat days must not inflate the count past m2_min_blocks (landmine #2:
     #    the count gates M2 on the RESIDUAL active series, not raw).
     if active_mask is not None:
         am = active_mask.reindex(resid.index).fillna(False).values
@@ -167,8 +170,9 @@ def run_gauntlet(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW", perm_n
     net_ann = float(resid_active.mean() * 252)
     out["net_ann"] = net_ann; out["resid_block_t"] = bt["t"]
 
-    # ★ S2 fence (b): report GROSS + the realistic-35bps net alongside the (conservative/placeholder) gated net, so a
-    #   cost-driven NULL is distinguishable from a no-signal NULL (the DEC-330 cost-inflation caveat, sharper on QoQ).
+    # Report GROSS + the realistic-35bps net alongside the (conservative/placeholder) gated net, so a
+    #   cost-driven NULL is distinguishable from a no-signal NULL (the placeholder cost band over-charges, more so
+    #   on the quarterly path).
     if book in ("nsi", "prof"):
         gross_active = raw.reindex(resid.index)
         if active_mask is not None:
@@ -180,8 +184,8 @@ def run_gauntlet(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW", perm_n
         if active_mask is not None:
             r35 = r35[active_mask.reindex(r35.index).fillna(False).values]
         out["net_ann_realistic_35bps"] = float(r35.mean() * 252) if len(r35) else float("nan")
-        # ★ BD §5.1 / S2 BLOCK-1: the gated `net_ann` already uses NET turnover (turnover_daily). ALSO report the OLD
-        #   per-cohort gross-turnover net — shows the BLOCK-1 over-charge (gate is on net-turnover; this is context only).
+        # The gated `net_ann` already uses NET turnover (turnover_daily). ALSO report the OLD per-cohort
+        #   gross-turnover net — shows how much the gross accounting over-charged (gate is on net-turnover; context only).
         if "turnover_daily_gross" in bk:
             net_gt = cost_mod.apply_costs(raw, bk["turnover_daily_gross"].reindex(raw.index).fillna(0.0),
                                           bk["short_gross_daily"].reindex(raw.index).fillna(0.0), band_bps, cfg)
@@ -198,7 +202,7 @@ def run_gauntlet(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW", perm_n
     m2 = m2_econ_sig and m2_power
     psr = psr_mod.psr_gate(resid_blocks, cfg)
     raw_blocks = blocks_mod.to_blocks(raw.reindex(resid.index).fillna(0.0), cfg)
-    out["raw_block_t"] = blocks_mod.block_t(raw_blocks, cfg)["t"]   # reported raw-vs-residual gradient (charter §5)
+    out["raw_block_t"] = blocks_mod.block_t(raw_blocks, cfg)["t"]   # reported raw-vs-residual gradient
     pn = permnull.perm_null_p(bk["formation_labels"], bk["name_daily"], cfg,
                              **({"perm_n": perm_n} if perm_n else {}))
     effn = _eff_n(bk["name_daily"], set().union(*[set(l[l != 0].index) for l in bk["formation_labels"].values()]))
@@ -215,7 +219,8 @@ def run_gauntlet(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW", perm_n
     #   PROMISING-UNCONFIRMED, not NULL. The power floor (m2_power) gates DEPLOY in the verdict terminal below.
     full_series_pass = bool(m2_econ_sig and psr.get("passed") and out["perm_null"]["pass"] and p3.get("passed"))
 
-    # 6) calendar-regime OOS (the cfg.oos_primary_regime leg — BC/pead = >=2010, BD = >=2013), beta re-estimated in-regime
+    # 6) calendar-regime OOS (the cfg.oos_primary_regime leg — drift/issuance books >= 2010, profitability >= 2013),
+    #    beta re-estimated in-regime
     reg = regime_of(resid.index.to_series(), cfg)
     is_mask = (reg != cfg.oos_primary_regime).values
     oos_mask = (reg == cfg.oos_primary_regime).values
@@ -238,8 +243,8 @@ def run_gauntlet(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW", perm_n
                       "note": "insufficient OOS span"}
     out["is_sharpe"] = is_sharpe
 
-    # 7) verdict terminal table (charter §4 / N5 / DH-B; ★ G.5 underpowered branch BEFORE oos — landmine #1;
-    #    ★ DEC-340: NOVEL-on-known-factor → PROMISING-PENDING-INVESTIGATION, not bare DEPLOY)
+    # 7) verdict terminal table (the underpowered branch is decided BEFORE the OOS read; a known-factor book
+    #    mislabeled NOVEL → PROMISING-PENDING-INVESTIGATION, not bare DEPLOY)
     out["verdict"] = _verdict_terminal(full_series_pass, m2_power, oos_conf, bool(out["OOS"].get("indeterminate")),
                                        out["interpretation"]["label"], book, out.get("cost_mode"))
     out["full_series_pass"] = full_series_pass

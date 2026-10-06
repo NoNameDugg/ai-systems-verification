@@ -1,7 +1,7 @@
 """
-TDI tests for deflation (Sprint AV-ALTDATA-IC Track-1, charter T1.1/D-HARD-2/NIT-3).
+Tests for deflation: Holm step-down family-wise correction over per-cell permutation p-values.
 
-Run:  python -m pytest scripts/backtester/rank_ic_gate/test_deflation.py -q
+Run:  python -m pytest test_deflation.py -q   (from this directory)
 """
 import os
 import sys

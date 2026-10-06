@@ -23,14 +23,14 @@ import fundamental_factors as ff_mod
 
 
 def tr_panel(snap: Snapshot, cfg: ForkBConfig) -> pd.DataFrame:
-    """date x ticker daily TOTAL return, with the intra-hold delist terminal value applied (D-HARD-5).
+    """date x ticker daily TOTAL return, with the intra-hold delist terminal value applied.
 
     A delisted name's last in-panel day gets the terminal return (terminal_value/last_close - 1) from
     ACTIONS, so a held position realizes the survivorship-correct terminal (≈0 bankruptcy / deal price).
     """
     tr = tr_canary.build_tr(snap, cfg)
     panel = tr.pivot_table(index="date", values="tr", columns="ticker")
-    # apply delist terminal value — ★ BOUNDED to a sane delisting range [-1, +1] (S2/DEC-330): the raw
+    # apply delist terminal value — BOUNDED to a sane delisting range [-1, +1]: the raw
     # terminal_value/last_close-1 blows up on penny denominators / unit mismatches (SDOCQ +1.2M%).
     dels = snap.actions[snap.actions["action"] == "delisted"]
     last_close = snap.sep.sort_values("date").groupby("ticker")["close"].last()
@@ -44,7 +44,7 @@ def tr_panel(snap: Snapshot, cfg: ForkBConfig) -> pd.DataFrame:
         d = col.index[-1]
         term_ret = float(row["value"]) / float(last_close[t]) - 1.0
         panel.loc[d, t] = max(-1.0, min(term_ret, 1.0))
-    # ★ name-level daily-TR clip (S2 verdict-validation / DEC-330) — the robust catch-all for delist + closeadj
+    # name-level daily-TR clip — the robust catch-all for delist + closeadj
     # reissue/Q-stub discontinuities (a real daily equity TR > tr_clip_daily is an event/artifact, not a PEAD signal).
     if cfg.tr_clip_daily is not None:
         panel = panel.clip(lower=-cfg.tr_clip_daily, upper=cfg.tr_clip_daily)
@@ -66,7 +66,7 @@ def liquid_panel(snap: Snapshot, cfg: ForkBConfig) -> pd.DataFrame:
     adv = _adv(snap, cfg).reindex_like(mcap)
     closeadj = snap.sep.pivot_table(index="date", values="closeadj", columns="ticker").reindex_like(mcap)
     ok = ((mcap >= cfg.marketcap_floor) & (close >= cfg.price_floor) & (adv >= cfg.adv_floor)
-          & (closeadj >= cfg.closeadj_floor))   # ★ closeadj precision screen (DEC-329) — exclude rounding-noisy TR
+          & (closeadj >= cfg.closeadj_floor))   # closeadj precision screen — exclude rounding-noisy TR
     return ok.fillna(False)
 
 
@@ -131,7 +131,7 @@ def pead_book(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW") -> dict:
         cand = cand.sort_values("datekey").groupby("ticker").tail(1)        # most-recent per name
         # formation-once liquid screen as-of D
         cand = cand[cand["ticker"].apply(lambda t: bool(liq.loc[D, t]) if t in liq.columns else False)]
-        if len(cand) < cfg.min_leg_names * q:                # need >= min_leg_names per quintile leg (S2 C2 / §7-pin-1)
+        if len(cand) < cfg.min_leg_names * q:                # need >= min_leg_names per quintile leg
             continue
         cand = cand.sort_values("sue")
         nper = len(cand) // q
@@ -269,12 +269,12 @@ def nsi_book(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW", cadence: s
         "short_gross_daily": pd.Series(short_gross / cc, index=dates),
         "n_formations": len(formation_labels),
         "max_short_weight": max_short_w,
-        "active_mask": pd.Series(cohort_count > 0, index=dates),     # ★ honest active-block counting (S2 #3)
+        "active_mask": pd.Series(cohort_count > 0, index=dates),     # honest active-block counting
     }
 
 
 def _net_turnover(w_agg: dict, cohort_count, dates) -> pd.Series:
-    """★ BD §5.1 / S2 BLOCK-1 — NET turnover = the L1 day-over-day change of the NORMALIZED dollar-neutral book.
+    """NET turnover = the L1 day-over-day change of the NORMALIZED dollar-neutral book.
     w_agg: dict{ticker -> np.array(len(dates))} = signed aggregate held weight (sum over live cohorts, pre-normalization;
     long +, short −). The normalized book book_w = w_agg / cohort_count is always unit-gross per leg, so Σ|Δ book_w| is
     the traded notional (fraction of book traded). A STICKY signal (same names across consecutive cohorts) → ~0 net
@@ -300,7 +300,7 @@ def profitability_book(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW") 
     liq = liquid_panel(snap, cfg).reindex(index=dates, columns=panel.columns).fillna(False)
     mcap = snap.daily.pivot_table(index="date", values="marketcap", columns="ticker").reindex(
         index=dates, columns=panel.columns)
-    cap = cfg.fundamental_max_stale_days                             # ★ S2-AMEND: drop chars staler than N cal days
+    cap = cfg.fundamental_max_stale_days                             # drop characteristics staler than N calendar days
     char = ff_mod.pit_fundamental_chars(snap, cfg, max_stale_days=cap)["rmw"].reindex(index=dates, columns=panel.columns)
     char_full = (ff_mod.pit_fundamental_chars(snap, cfg)["rmw"].reindex(index=dates, columns=panel.columns)
                  if cap is not None else char)                       # uncapped, for the stale-incidence report only
@@ -312,7 +312,7 @@ def profitability_book(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW") 
     w_agg: dict = {}                                                  # ticker -> signed aggregate held weight per day
     formation_labels: dict = {}
     max_short_w = 0.0
-    stale_dropped_total = 0; n_cand_pool_total = 0                    # ★ S2-AMEND stale-incidence report
+    stale_dropped_total = 0; n_cand_pool_total = 0                    # stale-incidence report
 
     for fi in form_idx:
         D = dates[fi]
@@ -366,13 +366,13 @@ def profitability_book(snap: Snapshot, cfg: ForkBConfig, weighting: str = "VW") 
     return {
         "daily_raw": daily_raw, "long_leg_daily": long_leg, "short_leg_daily": short_leg,
         "formation_labels": formation_labels, "name_daily": panel,
-        "turnover_daily": _net_turnover(w_agg, cohort_count, dates),          # ★ NET (the gated cost; §5.1)
+        "turnover_daily": _net_turnover(w_agg, cohort_count, dates),          # NET (the gated cost)
         "turnover_daily_gross": pd.Series(turnover_gross / cc, index=dates),  # old per-cohort accounting (reported)
         "short_gross_daily": pd.Series(short_gross / cc, index=dates),
         "n_formations": len(formation_labels),
         "max_short_weight": max_short_w,
         "active_mask": pd.Series(cohort_count > 0, index=dates),
-        "stale_dropped_total": int(stale_dropped_total),             # ★ S2-AMEND stale-incidence (cap dropped these slots)
+        "stale_dropped_total": int(stale_dropped_total),             # stale-incidence (the cap dropped these slots)
         "n_cand_pool_total": int(n_cand_pool_total),
         "stale_dropped_frac": float(stale_dropped_total / n_cand_pool_total) if n_cand_pool_total else 0.0,
     }
