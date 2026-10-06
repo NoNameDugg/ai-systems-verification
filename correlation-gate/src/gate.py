@@ -31,7 +31,7 @@ from src.basket import (
     create_basket_snapshot,
     project_exposure_with_signal,
 )
-from src.directional import parse_directional_exposure
+from src.directional import extract_currencies, parse_directional_exposure
 from src.exceptions import (
     GateError,
     InvalidSignalError,
@@ -328,6 +328,17 @@ class CorrelationGate:
                     signal.instrument, signal.direction
                 )
 
+                # XAU notional is priced from spot (directional.calculate_usd_notional).
+                # Without a spot price the projection would silently size gold at the
+                # 1.0 placeholder below, so refuse instead (fail closed).
+                base_ccy, _ = extract_currencies(signal.instrument)
+                if base_ccy == "XAU" and "XAU_USD" not in self._spot_prices:
+                    return self._fail_closed_decision(
+                        reason="No XAU_USD spot price for XAU notional "
+                        "(call update_spot_prices first)",
+                        start_time=start_time,
+                    )
+
                 # Project exposure with signal
                 signal_position = signal.to_position(
                     position_id=f"pending_{signal.signal_id}",
@@ -337,9 +348,10 @@ class CorrelationGate:
                     positions, signal_position, self._state_version, self._spot_prices
                 )
 
-                # Include pending signals in projection
+                # Include pending signals in projection. The new trade itself
+                # must stay in the projection: it is slot N+M+1, not N+M.
                 projected_snapshot = self._include_pending_in_projection(
-                    projected_snapshot, positions
+                    projected_snapshot, positions + [signal_position]
                 )
 
                 # Evaluate thresholds
@@ -439,6 +451,20 @@ class CorrelationGate:
         """Get all current pending IDs."""
         with self._lock:
             return set(self._pending.keys())
+
+    def update_spot_prices(self, prices: Dict[str, Decimal]) -> None:
+        """
+        Supply current spot prices used to size non-USD-quoted exposure.
+
+        Required for XAU: a gold signal is refused (HARD_BLOCK, fail closed)
+        until ``XAU_USD`` is present here. Prices are merged, not replaced.
+
+        Args:
+            prices: Mapping of instrument (e.g. ``"XAU_USD"``) to spot price
+        """
+        with self._lock:
+            for instrument, price in prices.items():
+                self._spot_prices[instrument] = Decimal(str(price))
 
     def synchronize_with_engine(self, active_pending_ids: List[str]) -> SyncResult:
         """

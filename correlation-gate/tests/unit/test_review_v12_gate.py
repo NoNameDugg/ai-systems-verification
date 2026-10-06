@@ -3,10 +3,9 @@ External review (2026-10) reproductions — correlation gate
 ==========================================================
 
 Each test here reproduces one finding from an independent code review of
-v1.1.0. They were committed FAILING (``xfail(strict=True)``) before any fix so
-the defect is in the tree as a test, not as prose. When the fix lands the
-``xfail`` marker is removed and the test must pass; if a later change
-re-introduces the defect the test fails again.
+v1.1.0. They were committed FAILING (``xfail(strict=True)``) in 1078a65 before
+any fix, then flipped to plain tests by the fix commit. If a later change
+re-introduces a defect, its test fails again.
 
 Findings covered:
   #5  pending-approval off-by-one: the new trade's own slot is dropped from the
@@ -55,7 +54,6 @@ def _gate(config: GateConfig, positions: List[Position] = None) -> CorrelationGa
 # =============================================================================
 
 
-@pytest.mark.xfail(strict=True, reason="review #5: new trade dropped from projection when any approval is pending")
 class TestPendingProjectionCountsNewTrade:
     """With N open + M pending, a new same-basket trade is slot N+M+1."""
 
@@ -103,7 +101,6 @@ class TestPendingProjectionCountsNewTrade:
 # =============================================================================
 
 
-@pytest.mark.xfail(strict=True, reason="review #7: OANDA provider sends no Authorization header")
 class TestOandaAuthorizationHeader:
     """Every HTTP call to OANDA must authenticate."""
 
@@ -136,7 +133,6 @@ class TestOandaAuthorizationHeader:
 # =============================================================================
 
 
-@pytest.mark.xfail(strict=True, reason="review #8: XAU projected at placeholder price 1.0; no spot-price input exists")
 class TestXauNotionalIsNeverAPlaceholder:
     """A proposed gold trade is sized at spot, or refused — never at $1/oz."""
 
@@ -156,7 +152,7 @@ class TestXauNotionalIsNeverAPlaceholder:
         existing = Position(
             instrument="XAU_USD",
             direction="LONG",
-            units=50,
+            units=30,
             entry_price=Decimal("2350.00"),
             entry_time=datetime.now(timezone.utc),
             position_id="xau_open",
@@ -164,10 +160,13 @@ class TestXauNotionalIsNeverAPlaceholder:
         gate = _gate(GateConfig(**self._CFG), [existing])
         gate.update_spot_prices({"XAU_USD": Decimal("2350.00")})
 
-        # 50 oz open + 50 oz proposed = 100 oz * 2350 = $235,000 gross
-        # >= soft_warning_gross_notional (150,000) -> SOFT_WARNING
-        decision = gate.evaluate(TradeSignal("XAU_USD", "LONG", 50, signal_id="x2"))
+        # 30 oz open + 30 oz proposed = 60 oz * 2350 = $141,000 net long gold:
+        # >= soft_warning_net_notional (100,000), < hard_block_net_notional
+        # (200,000) -> SOFT_WARNING. At the 1.0 placeholder this was $70,530
+        # (30 * 2350 + 30 * 1) and ALLOW.
+        decision = gate.evaluate(TradeSignal("XAU_USD", "LONG", 30, signal_id="x2"))
 
         xau = decision.projected_exposure.baskets["XAU"]
-        assert xau.gross_notional == Decimal("235000.00")
+        assert xau.net_notional == Decimal("141000.00")
         assert decision.decision == "SOFT_WARNING"
+        assert decision.pending_id is not None

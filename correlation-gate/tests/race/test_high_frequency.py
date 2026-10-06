@@ -203,13 +203,17 @@ class TestPendingExpiry:
         gate = CorrelationGate(gate_config, empty_provider)
         gate.initialize()
 
-        # Generate pending signals
+        # Generate pending signals. The gate counts the new trade alongside the
+        # pending ones (review #5), so under hard_block_count=10 only 9 same-
+        # direction signals can be approved; the 10th is the blocked slot.
+        decisions = []
         for i in range(10):
             signal = TradeSignal("EUR_USD", "LONG", 10000, signal_id=f"expire_{i}")
-            gate.evaluate(signal)
+            decisions.append(gate.evaluate(signal))
 
         initial_pending = len(gate.get_pending_ids())
-        assert initial_pending == 10
+        assert initial_pending == gate_config.hard_block_count - 1 == 9
+        assert decisions[-1].decision == "HARD_BLOCK"
 
         # Wait for expiry + some margin
         time.sleep(0.7)

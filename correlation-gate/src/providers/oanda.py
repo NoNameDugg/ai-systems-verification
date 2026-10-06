@@ -159,11 +159,20 @@ class OandaPositionProvider(PositionProvider):
         try:
             response = self._http_client.get(
                 f"{self._config.base_url}/v3/accounts/{self._config.account_id}",
+                headers=self._headers(),
                 timeout=5.0,
             )
             return response.status_code == 200
         except Exception:
             return False
+
+    def _headers(self) -> Dict[str, str]:
+        """Headers every OANDA v20 request must carry (bearer auth)."""
+        return {
+            "Authorization": f"Bearer {self._config.api_token}",
+            "Accept-Datetime-Format": "RFC3339",
+            "Content-Type": "application/json",
+        }
 
     def get_last_fetch_time(self) -> Optional[datetime]:
         """Get time of last successful fetch."""
@@ -196,7 +205,9 @@ class OandaPositionProvider(PositionProvider):
         for attempt in range(self._max_retries + 1):
             try:
                 response = self._http_client.get(
-                    url, timeout=self._request_timeout_seconds
+                    url,
+                    headers=self._headers(),
+                    timeout=self._request_timeout_seconds,
                 )
 
                 if response.status_code == 200:

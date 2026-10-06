@@ -11,10 +11,10 @@ This test uses the oracle that already existed but had no callers
 same-direction USD signals at once; at most ``hard_block_count - 1`` may be
 approved, and the pending set must never exceed that either.
 
-Committed FAILING (``xfail(strict=True)``) because finding #5 (pending
-off-by-one) lets a third approval through even with the lock intact. After the
-#5 fix it passes with the lock and fails again when the lock is a no-op — the
-mutation that proves it bites (see MUTATIONS.md in the sprint record).
+Committed FAILING (``xfail(strict=True)``) in 1078a65 because finding #5
+(pending off-by-one) let a third approval through even with the lock intact.
+With #5 fixed it passes with the lock and fails when the lock is a no-op — the
+mutation that proves it bites (see the v1.2.0 CHANGELOG entry).
 """
 
 import threading
@@ -46,10 +46,6 @@ class _SlowEmptyProvider:
         return datetime.now(timezone.utc)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="review #5/#9: a third same-basket approval is issued under limit 3",
-)
 def test_concurrent_same_basket_never_exceeds_limit():
     config = GateConfig(
         soft_warning_count=2,
@@ -59,9 +55,18 @@ def test_concurrent_same_basket_never_exceeds_limit():
     )
     gate = CorrelationGate(config, _SlowEmptyProvider(delay_ms=20))
     assert gate.initialize()
-    # force a (slow) provider fetch inside every evaluate() so the critical
-    # section is wide enough for an unserialised gate to interleave
-    gate._last_fetch = None
+    # Widen the exact window the lock protects: between reading the pending set
+    # (projection) and registering the new pending id. Without this the window
+    # is microseconds wide and the GIL serialises it by accident, which is why
+    # the shipped race tests could not tell a locked gate from an unlocked one.
+    original_include = gate._include_pending_in_projection
+
+    def slow_include(snapshot, positions):
+        out = original_include(snapshot, positions)
+        time.sleep(0.01)
+        return out
+
+    gate._include_pending_in_projection = slow_include
 
     n = 20
     signals = [TradeSignal("EUR_USD", "LONG", 10000, signal_id=f"s{i}") for i in range(n)]
