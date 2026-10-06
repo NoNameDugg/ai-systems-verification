@@ -129,7 +129,7 @@ module-name = "astra_flash"
 python-source = "python"
 
 # Features to enable during build
-features = ["python"]
+features = ["python-ext"]
 
 # Binding type (pyo3 is default, but explicit is good)
 bindings = "pyo3"
